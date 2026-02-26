@@ -1,0 +1,5 @@
+{
+  "name": "Roulette Pattern Tracker",
+  "description": "An advanced tool to track roulette spin history, detect repeating number patterns, and provide real-time alerts and statistics. Features a casino-themed interface, pattern analysis, and customizable notifications.",
+  "requestFramePermissions": []
+}
