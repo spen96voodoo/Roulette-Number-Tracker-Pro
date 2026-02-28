@@ -29,31 +29,36 @@ const translations = {
         title: "Roulette Tracker", strategy: "Strategy", history: "History", alerts: "Alerts", undo: "Undo", clear: "Clear",
         vip: "VIP", help: "Help", pl: "P/L", bet: "Bet", waiting: "Waiting", analyzing: "Analyzing...", empty: "Empty",
         clearTitle: "Clear Records", clearMsg: "This will clear all history. Continue?", color: "Color", final: "Final",
-        series: "Series", topNums: "Top Numbers", hit: "HIT!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers"
+        series: "Series", topNums: "Top Numbers", hit: "HIT!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers",
+        restoreTitle: "Restore Session", restoreMsg: "Previous session data found. Restore it?", restoreBtn: "Restore", newSessionBtn: "New Session"
     },
     zh: {
         title: "轮盘走势追踪", strategy: "策略", history: "历史记录", alerts: "模式警报", undo: "撤销", clear: "清除",
         vip: "会员", help: "说明", pl: "盈亏", bet: "下注", waiting: "等待中", analyzing: "正在分析...", empty: "无数据",
         clearTitle: "清除记录", clearMsg: "这将清除所有历史记录。是否继续？", color: "颜色", final: "尾数",
-        series: "分区", topNums: "核心推荐", hit: "命中!", voisins: "零区", orphelins: "孤注", tiers: "三区"
+        series: "分区", topNums: "核心推荐", hit: "命中!", voisins: "零区", orphelins: "孤注", tiers: "三区",
+        restoreTitle: "恢复会话", restoreMsg: "发现之前的会話数据。是否恢复？", restoreBtn: "恢复", newSessionBtn: "新会话"
     },
     ja: {
         title: "ルーレットトラッカー", strategy: "ストラテジー", history: "履歴", alerts: "アラート", undo: "戻る", clear: "削除",
         vip: "VIP", help: "ヘルプ", pl: "損益", bet: "ベット", waiting: "待機中", analyzing: "分析中...", empty: "データなし",
         clearTitle: "記録の削除", clearMsg: "すべての履歴を削除します。よろしいですか？", color: "カラー", final: "下一桁",
-        series: "セクター", topNums: "推奨番号", hit: "当たり!", voisins: "0区", orphelins: "孤立区", tiers: "3区"
+        series: "セクター", topNums: "推奨番号", hit: "当たり!", voisins: "0区", orphelins: "孤立区", tiers: "3区",
+        restoreTitle: "セッションの復元", restoreMsg: "以前のセッションデータが見つかりました。復元しますか？", restoreBtn: "復元", newSessionBtn: "新規"
     },
     es: {
         title: "Rastreador Ruleta", strategy: "Estrategia", history: "Historial", alerts: "Alertas", undo: "Deshacer", clear: "Limpiar",
         vip: "VIP", help: "Ayuda", pl: "G/P", bet: "Apuesta", waiting: "Esperando", analyzing: "Analizando...", empty: "Vacío",
         clearTitle: "Limpiar Registros", clearMsg: "¿Esto borrará todo el historial. Continuar?", color: "Color", final: "Final",
-        series: "Serie", topNums: "Números Top", hit: "¡ACIERTO!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers"
+        series: "Serie", topNums: "Números Top", hit: "¡ACIERTO!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers",
+        restoreTitle: "Restaurar Sesión", restoreMsg: "Se encontraron datos de la sesión anterior. ¿Restaurar?", restoreBtn: "Restaurar", newSessionBtn: "Nueva"
     },
     ko: {
         title: "룰렛 트래커", strategy: "전략", history: "히스토리", alerts: "알림", undo: "실행 취소", clear: "초기화",
         vip: "VIP", help: "도움말", pl: "손익", bet: "베팅", waiting: "대기 중", analyzing: "분석 중...", empty: "데이터 없음",
         clearTitle: "기록 초기화", clearMsg: "모든 히스토리가 삭제됩니다. 계속하시겠습니까?", color: "색상", final: "끝수",
-        series: "구역", topNums: "추천 번호", hit: "적중!", voisins: "0구역", orphelins: "고립구역", tiers: "3구역"
+        series: "구역", topNums: "추천 번호", hit: "적중!", voisins: "0구역", orphelins: "고립구역", tiers: "3구역",
+        restoreTitle: "세션 복구", restoreMsg: "이전 세션 데이터가 있습니다. 복구하시겠습니까?", restoreBtn: "복구", newSessionBtn: "새 세션"
     }
 };
 
@@ -158,6 +163,8 @@ const App: React.FC = () => {
   const [unitMultiplierInput, setUnitMultiplierInput] = useState<string>('1');
   const [betStrategyMode, setBetStrategyMode] = useState<'235' | '123' | '111'>('235');
   const [neighbourDepth, setNeighbourDepth] = useState<3 | 5>(3);
+  const [showRestoreConfirmation, setShowRestoreConfirmation] = useState<boolean>(false);
+  const [pendingSessionData, setPendingSessionData] = useState<any>(null);
 
   const t = (key: keyof typeof translations['en']) => translations[lang][key] || translations['en'][key];
 
@@ -172,24 +179,47 @@ const App: React.FC = () => {
     }
   };
 
+  const applySessionData = useCallback((data: any) => {
+    if (data.history) setSpinHistory(data.history);
+    if (data.alerts) setAlerts(data.alerts);
+    if (data.lang) setLang(data.lang as Language);
+    if (data.theme) setTheme(data.theme);
+    if (data.colorLookback) setColorLookback(data.colorLookback);
+    if (data.seriesLookback) setSeriesLookback(data.seriesLookback);
+    if (data.multiplier) { setUnitMultiplier(data.multiplier); setUnitMultiplierInput(data.multiplier.toString()); }
+    if (data.strategyMode) setBetStrategyMode(data.strategyMode);
+    if (data.depth) setNeighbourDepth(data.depth);
+    if (data.strategyEnabled !== undefined) setIsStrategyEnabled(data.strategyEnabled);
+  }, []);
+
   useEffect(() => {
     const savedData = localStorage.getItem(SESSION_STORAGE_KEY);
     if (savedData) {
         try {
             const parsed = JSON.parse(savedData);
-            if (parsed.history) setSpinHistory(parsed.history);
-            if (parsed.alerts) setAlerts(parsed.alerts);
-            if (parsed.lang) setLang(parsed.lang as Language);
-            if (parsed.theme) setTheme(parsed.theme);
-            if (parsed.colorLookback) setColorLookback(parsed.colorLookback);
-            if (parsed.seriesLookback) setSeriesLookback(parsed.seriesLookback);
-            if (parsed.multiplier) { setUnitMultiplier(parsed.multiplier); setUnitMultiplierInput(parsed.multiplier.toString()); }
-            if (parsed.strategyMode) setBetStrategyMode(parsed.strategyMode);
-            if (parsed.depth) setNeighbourDepth(parsed.depth);
-            if (parsed.strategyEnabled !== undefined) setIsStrategyEnabled(parsed.strategyEnabled);
+            if (parsed.history && parsed.history.length > 0) {
+                setPendingSessionData(parsed);
+                setShowRestoreConfirmation(true);
+            } else {
+                applySessionData(parsed);
+            }
         } catch (error) { console.error("Failed to restore session:", error); }
     }
-  }, []);
+  }, [applySessionData]);
+
+  const handleRestoreSession = () => {
+    if (pendingSessionData) applySessionData(pendingSessionData);
+    setPendingSessionData(null);
+    setShowRestoreConfirmation(false);
+    triggerHaptic('success');
+  };
+
+  const handleDiscardSession = () => {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setPendingSessionData(null);
+    setShowRestoreConfirmation(false);
+    triggerHaptic('light');
+  };
 
   useEffect(() => {
     const sessionData = { history: spinHistory, alerts: alerts, multiplier: unitMultiplier, strategyMode: betStrategyMode, depth: neighbourDepth, strategyEnabled: isStrategyEnabled, theme: theme, lang: lang, colorLookback, seriesLookback };
@@ -394,6 +424,16 @@ const App: React.FC = () => {
         </div>
       </main>
       <ConfirmationModal isOpen={showClearConfirmation} onClose={() => setShowClearConfirmation(false)} onConfirm={handleClearSession} title={t('clearTitle')} message={t('clearMsg')} />
+      <ConfirmationModal 
+        isOpen={showRestoreConfirmation} 
+        onClose={handleDiscardSession} 
+        onConfirm={handleRestoreSession} 
+        title={t('restoreTitle')} 
+        message={t('restoreMsg')} 
+        confirmText={t('restoreBtn')} 
+        cancelText={t('newSessionBtn')}
+        confirmButtonClass="bg-roulette-green text-white hover:bg-green-700"
+      />
     </div>
   );
 };
