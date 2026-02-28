@@ -165,6 +165,7 @@ const App: React.FC = () => {
   const [neighbourDepth, setNeighbourDepth] = useState<3 | 5>(3);
   const [showRestoreConfirmation, setShowRestoreConfirmation] = useState<boolean>(false);
   const [pendingSessionData, setPendingSessionData] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const t = (key: keyof typeof translations['en']) => translations[lang][key] || translations['en'][key];
 
@@ -190,6 +191,7 @@ const App: React.FC = () => {
     if (data.strategyMode) setBetStrategyMode(data.strategyMode);
     if (data.depth) setNeighbourDepth(data.depth);
     if (data.strategyEnabled !== undefined) setIsStrategyEnabled(data.strategyEnabled);
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
@@ -202,8 +204,14 @@ const App: React.FC = () => {
                 setShowRestoreConfirmation(true);
             } else {
                 applySessionData(parsed);
+                setIsInitialized(true);
             }
-        } catch (error) { console.error("Failed to restore session:", error); }
+        } catch (error) { 
+            console.error("Failed to restore session:", error);
+            setIsInitialized(true);
+        }
+    } else {
+        setIsInitialized(true);
     }
   }, [applySessionData]);
 
@@ -211,6 +219,7 @@ const App: React.FC = () => {
     if (pendingSessionData) applySessionData(pendingSessionData);
     setPendingSessionData(null);
     setShowRestoreConfirmation(false);
+    setIsInitialized(true);
     triggerHaptic('success');
   };
 
@@ -218,13 +227,15 @@ const App: React.FC = () => {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     setPendingSessionData(null);
     setShowRestoreConfirmation(false);
+    setIsInitialized(true);
     triggerHaptic('light');
   };
 
   useEffect(() => {
+    if (!isInitialized) return;
     const sessionData = { history: spinHistory, alerts: alerts, multiplier: unitMultiplier, strategyMode: betStrategyMode, depth: neighbourDepth, strategyEnabled: isStrategyEnabled, theme: theme, lang: lang, colorLookback, seriesLookback };
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
-  }, [spinHistory, alerts, unitMultiplier, betStrategyMode, neighbourDepth, isStrategyEnabled, theme, lang, colorLookback, seriesLookback]);
+  }, [spinHistory, alerts, unitMultiplier, betStrategyMode, neighbourDepth, isStrategyEnabled, theme, lang, colorLookback, seriesLookback, isInitialized]);
 
   const calculateBets = useCallback((history: number[], mode: '235' | '123' | '111', depth: 3 | 5): Map<number, number> => {
     const newBettingMap = new Map<number, number>();
