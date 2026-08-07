@@ -2,14 +2,13 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <title>Roulette Tracker Pro All in one</title>
-    <link rel="stylesheet" href="/index.css">
     <style>
       #splash {
         position: fixed;
@@ -20,7 +19,8 @@
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        transition: opacity 0.4s ease-out;
+        pointer-events: none;
+        transition: opacity 0.3s ease-out;
       }
       .loader {
         width: 44px;
@@ -69,21 +69,22 @@
       <div class="splash-text">Roulette Tracker Pro All in one</div>
     </div>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
     <script>
       (function() {
         function removeSplash() {
           const splash = document.getElementById('splash');
           if (splash) {
             splash.style.opacity = '0';
-            setTimeout(() => { try { splash.remove(); } catch(e){} }, 300);
+            setTimeout(function() { try { splash.remove(); } catch(e){} }, 300);
           }
         }
-        if (document.readyState === 'complete') {
-          setTimeout(removeSplash, 100);
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          setTimeout(removeSplash, 150);
         } else {
+          window.addEventListener('DOMContentLoaded', removeSplash);
           window.addEventListener('load', removeSplash);
-          setTimeout(removeSplash, 500);
+          setTimeout(removeSplash, 400);
         }
       })();
     </script>
