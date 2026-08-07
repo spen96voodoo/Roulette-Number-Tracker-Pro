@@ -1,100 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#121212" />
+    <meta name="theme-color" content="#0a0a0a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
-    <title>Roulette Pattern Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'roulette-green': '#2E7D32',
-              'roulette-red': '#C62828',
-              'roulette-black': '#121212',
-              'gold': '#FFD700',
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            keyframes: {
-              'fade-in': {
-                '0%': { opacity: '0', transform: 'translateY(-10px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              'slide-up': {
-                '0%': { transform: 'translateY(100%)' },
-                '100%': { transform: 'translateY(0)' },
-              },
-              'pop': {
-                '0%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(0.92)' },
-                '100%': { transform: 'scale(1)' },
-              }
-            },
-            animation: {
-              'fade-in': 'fade-in 0.4s ease-out forwards',
-              'slide-up': 'slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              'pop': 'pop 0.15s ease-out',
-            }
-          }
-        }
-      }
-    </script>
+    <title>Roulette Tracker Pro All in one</title>
+    <link rel="stylesheet" href="/index.css">
     <style>
-      :root {
-        --sat: env(safe-area-inset-top);
-        --sar: env(safe-area-inset-right);
-        --sab: env(safe-area-inset-bottom);
-        --sal: env(safe-area-inset-left);
+      #splash {
+        position: fixed;
+        inset: 0;
+        background-color: #0a0a0a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.4s ease-out;
       }
-      
-      body {
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        user-select: none;
-        overscroll-behavior-y: none;
-        background-color: #121212; /* Default dark background for status bar blending */
+      .loader {
+        width: 44px;
+        height: 44px;
+        border: 3px solid #FFD700;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 0.8s linear infinite;
       }
-
-      /* Native scrollbar behavior */
-      .custom-scrollbar::-webkit-scrollbar {
-        display: none;
+      @keyframes rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
-      .custom-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-
-      /* Fix for iOS 100vh issue */
-      .h-screen-ios {
-        height: -webkit-fill-available;
+      .splash-text {
+        margin-top: 18px;
+        color: #FFD700;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.15rem;
+        font-weight: bold;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.3.0"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <script>
+      window.addEventListener('error', function(e) {
+        if (e && (e.message === 'Script error.' || e.message?.includes('Script error'))) {
+          console.warn('Captured external script error:', e);
+          if (typeof e.preventDefault === 'function') e.preventDefault();
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        if (e && e.reason && e.reason.message === 'Script error.') {
+          if (typeof e.preventDefault === 'function') e.preventDefault();
+        }
+      });
+    </script>
 </head>
-  <body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300 overscroll-none h-screen-ios">
+  <body class="bg-black text-gray-100 transition-colors duration-300 overscroll-none h-screen-ios">
+    <div id="splash">
+      <div class="loader"></div>
+      <div class="splash-text">Roulette Tracker Pro All in one</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      (function() {
+        function removeSplash() {
+          const splash = document.getElementById('splash');
+          if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => { try { splash.remove(); } catch(e){} }, 300);
+          }
+        }
+        if (document.readyState === 'complete') {
+          setTimeout(removeSplash, 100);
+        } else {
+          window.addEventListener('load', removeSplash);
+          setTimeout(removeSplash, 500);
+        }
+      })();
+    </script>
   </body>
 </html>

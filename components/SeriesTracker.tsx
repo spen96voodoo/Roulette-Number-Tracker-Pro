@@ -1,11 +1,63 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import { getSeriesType } from '../utils/roulette';
 import { SeriesIconDisplay } from './SeriesIconDisplay';
-import type { SeriesType } from '../types';
+import type { SeriesType, Language } from '../types';
 
 interface SeriesTrackerProps {
   history: number[];
+  lang?: Language;
 }
+
+const seriesLabels = {
+  en: {
+    waiting: 'Waiting for Data',
+    roadmap: 'Sector Roadmap',
+    liveHistory: 'Live History',
+    voisins: 'Voisins',
+    orphelins: 'Orphelins',
+    tiers: 'Tiers',
+  },
+  zh: {
+    waiting: '等待数据录入',
+    roadmap: '分区走势路单',
+    liveHistory: '实时记录',
+    voisins: '零区 (Voisins)',
+    orphelins: '孤注 (Orphelins)',
+    tiers: '三区 (Tiers)',
+  },
+  ja: {
+    waiting: 'データ待機中',
+    roadmap: 'セクターロードマップ',
+    liveHistory: 'リアルタイム履歴',
+    voisins: '0区',
+    orphelins: '孤立区',
+    tiers: '3区',
+  },
+  es: {
+    waiting: 'Esperando Datos',
+    roadmap: 'Hoja de Ruta de Sectores',
+    liveHistory: 'Historial en Vivo',
+    voisins: 'Voisins',
+    orphelins: 'Orphelins',
+    tiers: 'Tiers',
+  },
+  ko: {
+    waiting: '데이터 대기 중',
+    roadmap: '구역 로드맵',
+    liveHistory: '실시간 기록',
+    voisins: '0구역',
+    orphelins: '고립구역',
+    tiers: '3구역',
+  },
+  vi: {
+    waiting: 'Đang Chờ Dữ Liệu',
+    roadmap: 'Luồng Phân Vùng',
+    liveHistory: 'Lịch Sử Thời Gian Thực',
+    voisins: 'Voisins (0)',
+    orphelins: 'Orphelins',
+    tiers: 'Tiers (3)',
+  },
+};
 
 const SeriesColumnHeader: React.FC<{ series: SeriesType }> = ({ series }) => {
     // Top = Voisins (▲), Middle = Orphelins (■), Small = Tiers (▼)
@@ -27,8 +79,9 @@ interface HistoryItem {
     index: number;
 }
 
-export const SeriesTracker: React.FC<SeriesTrackerProps> = ({ history }) => {
+export const SeriesTracker: React.FC<SeriesTrackerProps> = ({ history, lang = 'en' }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const t = seriesLabels[lang] || seriesLabels.en;
 
     const columns = useMemo(() => {
         if (history.length === 0) return [];
@@ -68,7 +121,7 @@ export const SeriesTracker: React.FC<SeriesTrackerProps> = ({ history }) => {
     if (columns.length === 0) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-900/40 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800">
-                <p className="text-center text-gray-400 font-black text-[10px] uppercase tracking-widest">Waiting for Data</p>
+                <p className="text-center text-gray-400 font-black text-[10px] uppercase tracking-widest">{t.waiting}</p>
             </div>
         );
     }
@@ -77,16 +130,16 @@ export const SeriesTracker: React.FC<SeriesTrackerProps> = ({ history }) => {
         <div className="flex flex-col h-full gap-1">
             <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    Sector Roadmap
+                    {t.roadmap}
                 </span>
                 <span className="text-[9px] font-bold text-gold uppercase tracking-tighter bg-gold/10 px-2 py-0.5 rounded-full border border-gold/20">
-                    Live History
+                    {t.liveHistory}
                 </span>
             </div>
 
             <div 
                 ref={scrollContainerRef} 
-                className="flex flex-row gap-1.5 p-1.5 bg-gray-100 dark:bg-gray-900/50 rounded-2xl overflow-x-auto h-full w-full border border-gray-200 dark:border-gray-800/50 custom-scrollbar-visible"
+                className="flex flex-row gap-1.5 p-1.5 bg-zinc-800/50 rounded-2xl overflow-x-auto h-full w-full border border-gray-700/50 custom-scrollbar-visible"
                 style={{ 
                     scrollbarWidth: 'auto', 
                     scrollbarColor: '#FFD700 rgba(0,0,0,0.1)',
@@ -125,13 +178,13 @@ export const SeriesTracker: React.FC<SeriesTrackerProps> = ({ history }) => {
 
             <div className="flex justify-center items-center gap-4 text-[9px] font-black uppercase text-gray-500 tracking-widest pt-0.5">
                 <div className="flex items-center gap-1">
-                    <span className="text-blue-400 text-sm">▲</span> Voisins
+                    <span className="text-blue-400 text-sm">▲</span> {t.voisins}
                 </div>
                 <div className="flex items-center gap-1">
-                    <span className="text-purple-400 text-sm">■</span> Orphelins
+                    <span className="text-purple-400 text-sm">■</span> {t.orphelins}
                 </div>
                 <div className="flex items-center gap-1">
-                    <span className="text-yellow-400 text-sm">▼</span> Tiers
+                    <span className="text-yellow-400 text-sm">▼</span> {t.tiers}
                 </div>
             </div>
         </div>

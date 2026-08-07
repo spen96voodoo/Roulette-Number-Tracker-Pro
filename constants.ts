@@ -27,3 +27,11 @@ export const ORPHELINS_SERIES: number[] = [1, 20, 14, 31, 9, 17, 34, 6];
 export const TIERS_SERIES: number[] = [33, 16, 24, 5, 10, 23, 8, 30, 11, 36, 13, 27];
 
 export const EUROPEAN_WHEEL_ORDER: number[] = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+
+export const WHEEL_SECTORS = [
+  { id: 1, name: "Sector 1 (0-Zone)", numbers: [0, 32, 15, 19, 4, 21, 2, 25, 17] },
+  { id: 2, name: "Sector 2 (Tiers-R)", numbers: [34, 6, 27, 13, 36, 11, 30, 8, 23] },
+  { id: 3, name: "Sector 3 (Tiers-L)", numbers: [10, 5, 24, 16, 33, 1, 20, 14, 31] },
+  { id: 4, name: "Sector 4 (Zero-L)", numbers: [9, 22, 18, 29, 7, 28, 12, 35, 3, 26] },
+];
+

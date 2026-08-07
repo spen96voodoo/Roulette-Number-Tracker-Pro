@@ -13,7 +13,7 @@ const colorClasses = {
 
 export const SpinHistory: React.FC<SpinHistoryProps> = ({ history }) => {
   return (
-    <div className="flex flex-wrap gap-1.5 p-1.5 bg-gray-100 dark:bg-gray-700 rounded-md max-h-48 md:max-h-72 overflow-y-auto custom-scrollbar">
+    <div className="flex flex-wrap gap-1.5 p-1.5 bg-zinc-800/50 rounded-md max-h-48 md:max-h-72 overflow-y-auto custom-scrollbar border border-gray-700/50">
       {[...history].reverse().map((num, index) => (
         <div 
           key={`${num}-${history.length - 1 - index}`}

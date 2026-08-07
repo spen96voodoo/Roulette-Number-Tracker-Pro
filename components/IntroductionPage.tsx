@@ -35,6 +35,7 @@ const languages: { code: Language; label: string; flag: string }[] = [
     { code: 'ja', label: '日本語', flag: '🇯🇵' },
     { code: 'es', label: 'Español', flag: '🇪🇸' },
     { code: 'ko', label: '한국어', flag: '🇰🇷' },
+    { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
 ];
 
 const content = {
@@ -122,6 +123,23 @@ const content = {
         s2P1T: "끝수 빈도 매트릭스", s2P1D: "전환 확률을 추적합니다. 예: 13(끝수 3) 적중 시, 3번 행이 다음 가능성 있는 끝수를 표시.",
         s2P2T: "섹터 로드맵 (히트맵)", s2P2D: "히스토리에서 Voisins, Orphelins, Tiers 섹터를 시각화합니다.",
         s3Title: "실행 전략", btn: "시스템 초기화"
+    },
+    vi: {
+        manual: "Cẩm Nang Thông Minh Cao Cấp", langLabel: "Chọn Ngôn Ngữ",
+        setup: "Cài Đặt Hệ Thống", colorDepth: "Độ Sâu Màu", seriesDepth: "Độ Sâu Phân Vùng",
+        setupIntro: "Cấu hình độ sâu động cơ phân tích. Quyết định số lượng vòng quay lịch sử dùng để dự đoán xu hướng.",
+        proTitle: "NÂNG CẤP PHIÊN BẢN PRO", proBtn: "Mở Khóa Chức Năng Pro",
+        proIntro: "Truy cập bộ công cụ tình báo VIP chuyên nghiệp và theo dõi chuyên sâu.",
+        proB1: "Theo Dõi Toàn Bộ Luồng Bánh Xe & Phân Vùng (Series)",
+        proB2: "Ma Trận Chuyển Tiếp Số Cuối & Lịch Sử Tần Suất Đầy Đủ",
+        proB3: "Chỉ Số Hiệu Suất Cao Cấp & Tỷ Lệ Trúng Thời Gian Thực",
+        s1Title: "Động Cơ Dự Đoán Cốt Lõi", s1Desc: "Sử dụng mô hình đồng thuận tìm kiếm điểm trùng khớp đa biến.",
+        s1P1T: "1. Nhận Diện Chuỗi Số", s1P1D: "Quét lịch sử tìm kiếm các cặp số lặp dẫn đến kết quả cụ thể.",
+        s1P2T: "2. Phân Cụm Bánh Xe", s1P2D: "Xác định thiên vị bánh xe qua phân vùng Pháp và nhịp độ người quay.",
+        s2Title: "Công Cụ Tình Báo VIP", s2Desc: "Các lớp dữ liệu trực quan tiết lộ xu hướng chuyên sâu.",
+        s2P1T: "Ma Trận Tần Suất Số Cuối", s2P1D: "Theo dõi xác suất chuyển tiếp. VD: Nếu trúng 13 (Số cuối 3), hàng 3 hiển thị các số cuối có khả năng tiếp theo.",
+        s2P2T: "Sơ Đồ Nhiệt Phân Vùng", s2P2D: "Trực quan hóa phân bố Voisins, Orphelins và Tiers qua lịch sử.",
+        s3Title: "Chiến Lược Thực Thi", btn: "Khởi Tạo Hệ Thống"
     }
 };
 
@@ -139,8 +157,8 @@ export const IntroductionPage: React.FC<IntroductionPageProps> = ({
 
     return (
         <div className="animate-fade-in pb-20 max-w-3xl mx-auto px-1">
-            <div className="flex items-center mb-6 mt-2 sticky top-0 bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-md z-10 py-2">
-                <button onClick={onBack} className="p-2.5 rounded-2xl bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 transition-all mr-4 border border-gray-100 dark:border-gray-700" aria-label="Back">
+            <div className="flex items-center mb-6 mt-2 sticky top-0 bg-black/80 backdrop-blur-md z-10 py-2 text-white">
+                <button onClick={onBack} className="p-2.5 rounded-2xl bg-zinc-900 shadow-md hover:bg-gray-800 active:scale-95 transition-all mr-4 border border-gray-800 text-gray-200" aria-label="Back">
                     <BackIcon />
                 </button>
                 <h2 className="text-2xl font-black" style={{fontFamily: "'Playfair Display', serif"}}>
@@ -150,7 +168,7 @@ export const IntroductionPage: React.FC<IntroductionPageProps> = ({
 
             <div className="space-y-4">
                 {/* Pro Upgrade Section */}
-                <section className="bg-gradient-to-br from-gray-900 via-gray-800 to-black p-5 rounded-3xl shadow-2xl border border-gold/30 relative overflow-hidden group">
+                <section className="bg-gradient-to-br from-zinc-900 via-zinc-800 to-black p-5 rounded-3xl shadow-2xl border border-gold/30 relative overflow-hidden group text-white">
                     <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:scale-110 transition-transform">
                         <CrownIcon />
                     </div>
@@ -185,17 +203,17 @@ export const IntroductionPage: React.FC<IntroductionPageProps> = ({
                 </section>
 
                 {/* Combined Settings Section */}
-                <section className="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700/50">
+                <section className="bg-zinc-900 p-4 rounded-3xl shadow-xl border border-gray-800/50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Language Picker */}
                         <div>
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.langLabel}</h3>
-                            <div className="grid grid-cols-5 gap-1.5">
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                                 {languages.map((l) => (
                                     <button
                                         key={l.code}
                                         onClick={() => { if (('vibrate' in navigator)) navigator.vibrate(10); setLang(l.code); }}
-                                        className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all active:scale-95 ${lang === l.code ? 'border-gold bg-gold/5 shadow-md' : 'border-gray-100 dark:border-gray-700 hover:border-gold/30'}`}
+                                        className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all active:scale-95 ${lang === l.code ? 'border-gold bg-gold/5 shadow-md' : 'border-gray-805 dark:border-gray-808 hover:border-gold/30 text-gray-200'}`}
                                     >
                                         <span className="text-xl mb-0.5">{l.flag}</span>
                                         <span className={`text-[8px] font-black uppercase ${lang === l.code ? 'text-gold' : 'text-gray-400'}`}>{l.code}</span>
@@ -219,7 +237,7 @@ export const IntroductionPage: React.FC<IntroductionPageProps> = ({
                                                 <button 
                                                     key={val} 
                                                     onClick={() => setColorLookback(val)}
-                                                    className={`flex-1 py-1 rounded-lg border font-black text-[9px] transition-all ${colorLookback === val ? 'border-gold bg-gold text-black' : 'border-gray-100 dark:border-gray-700 text-gray-400'}`}
+                                                    className={`flex-1 py-1 rounded-lg border font-black text-[9px] transition-all ${colorLookback === val ? 'border-gold bg-gold text-black' : 'border-gray-800 text-gray-400'}`}
                                                 >
                                                     {val}
                                                 </button>
@@ -233,7 +251,7 @@ export const IntroductionPage: React.FC<IntroductionPageProps> = ({
                                                 <button 
                                                     key={val} 
                                                     onClick={() => setSeriesLookback(val)}
-                                                    className={`flex-1 py-1 rounded-lg border font-black text-[9px] transition-all ${seriesLookback === val ? 'border-gold bg-gold text-black' : 'border-gray-100 dark:border-gray-700 text-gray-400'}`}
+                                                    className={`flex-1 py-1 rounded-lg border font-black text-[9px] transition-all ${seriesLookback === val ? 'border-gold bg-gold text-black' : 'border-gray-800 text-gray-400'}`}
                                                 >
                                                     {val}
                                                 </button>
@@ -246,38 +264,38 @@ export const IntroductionPage: React.FC<IntroductionPageProps> = ({
                     </div>
                 </section>
 
-                <section className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700/50">
+                <section className="bg-zinc-900 p-6 rounded-3xl shadow-xl border border-gray-800/50">
                     <div className="flex items-center gap-4 mb-5">
                         <div className="w-10 h-10 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-xl shadow-lg">01</div>
-                        <h3 className="text-lg font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">{t.s1Title}</h3>
+                        <h3 className="text-lg font-black text-gray-100 uppercase tracking-widest">{t.s1Title}</h3>
                     </div>
-                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-relaxed mb-6">{t.s1Desc}</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider leading-relaxed mb-6">{t.s1Desc}</p>
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/30">
+                        <div className="bg-zinc-800/50 p-4 rounded-2xl border border-gray-700/30 font-medium text-gray-350">
                             <span className="text-[10px] font-black text-roulette-red block mb-2 tracking-widest uppercase">{t.s1P1T}</span>
-                            <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300 leading-snug">{t.s1P1D}</p>
+                            <p className="text-[11px] leading-snug">{t.s1P1D}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/30">
+                        <div className="bg-zinc-800/50 p-4 rounded-2xl border border-gray-700/30 font-medium text-gray-350">
                             <span className="text-[10px] font-black text-roulette-green block mb-2 tracking-widest uppercase">{t.s1P2T}</span>
-                            <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300 leading-snug">{t.s1P2D}</p>
+                            <p className="text-[11px] leading-snug">{t.s1P2D}</p>
                         </div>
                     </div>
                 </section>
 
-                <section className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700/50">
+                <section className="bg-zinc-900 p-6 rounded-3xl shadow-xl border border-gray-800/50">
                     <div className="flex items-center gap-4 mb-5">
                         <div className="w-10 h-10 rounded-2xl bg-black border border-gold flex items-center justify-center font-black text-gold text-xl shadow-lg">02</div>
-                        <h3 className="text-lg font-black text-gray-800 dark:text-gray-100 uppercase tracking-widest">{t.s2Title}</h3>
+                        <h3 className="text-lg font-black text-gray-100 uppercase tracking-widest">{t.s2Title}</h3>
                     </div>
-                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6">{t.s2Desc}</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">{t.s2Desc}</p>
                     <div className="space-y-6">
                         <div>
                             <h4 className="text-xs font-black text-gold uppercase tracking-widest mb-2">{t.s2P1T}</h4>
-                            <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/30 leading-relaxed">{t.s2P1D}</p>
+                            <p className="text-[11px] font-medium text-gray-300 bg-zinc-800/50 p-4 rounded-2xl border border-gray-700/30 leading-relaxed">{t.s2P1D}</p>
                         </div>
                         <div>
                             <h4 className="text-xs font-black text-gold uppercase tracking-widest mb-2">{t.s2P2T}</h4>
-                            <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/30 leading-relaxed">{t.s2P2D}</p>
+                            <p className="text-[11px] font-medium text-gray-300 bg-zinc-800/50 p-4 rounded-2xl border border-gray-700/30 leading-relaxed">{t.s2P2D}</p>
                         </div>
                     </div>
                 </section>

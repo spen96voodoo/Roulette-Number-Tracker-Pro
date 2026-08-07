@@ -36,7 +36,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onClick={onClose} // Close on backdrop click
     >
       <div 
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 m-4 w-full max-w-md transform transition-all"
+        className="bg-zinc-900 rounded-lg shadow-xl p-6 m-4 w-full max-w-md transform transition-all border border-gray-800/50"
         onClick={e => e.stopPropagation()} // Prevent closing when clicking inside the modal
       >
         <h3 id="modal-title" className="text-xl font-bold text-gray-900 dark:text-white capitalize">{title}</h3>

@@ -1,0 +1,548 @@
+import React from 'react';
+import type { ComplexPrediction, Language, SectorSplitMode } from '../types';
+import type { HitStatus } from '../App';
+import { NUMBER_COLORS } from '../constants';
+import { getSeriesType } from '../utils/roulette';
+import { VipActivationCard } from './VipActivationCard';
+
+const colorClasses = {
+  red: 'bg-roulette-red text-white border-red-500/50',
+  black: 'bg-roulette-black text-white border-zinc-700',
+  green: 'bg-roulette-green text-white border-emerald-500/50',
+};
+
+const labels = {
+  en: {
+    title: "5-Criteria Prediction Engine",
+    top3: "Top 3 Recommended Numbers",
+    color: "Colour",
+    final: "Final Digit",
+    series: "Series",
+    sector: "Wheel Sector",
+    pocket: "Pocket Distance Steps",
+    depth: "Depth",
+    spins: "Spins",
+    cw: "CW",
+    acw: "ACW",
+    matched: "Matched Criteria",
+    hit: "HIT!",
+    predictionHit: "PREDICTION HIT!",
+    lastSpinHit: "LAST SPIN PREDICTION HIT!",
+    waiting: "Enter at least 3 spins to activate 5-criteria prediction engine.",
+  },
+  zh: {
+    title: "5维智能预测引擎",
+    top3: "核心推荐 Top 3 号码",
+    color: "颜色趋势",
+    final: "尾数趋势",
+    series: "轮盘分区",
+    sector: "轮盘扇区",
+    pocket: "口袋步距 (Top 1-3)",
+    depth: "深度",
+    spins: "转",
+    cw: "顺时针",
+    acw: "逆时针",
+    matched: "契合维度",
+    hit: "命中!",
+    predictionHit: "预测命中!",
+    lastSpinHit: "上一局预测成功命中!",
+    waiting: "请输入至少 3 次旋转数据以激活 5 维智能预测引擎。",
+  },
+  ja: {
+    title: "5基準AI予測エンジン",
+    top3: "推奨番号 Top 3",
+    color: "カラー",
+    final: "下一桁",
+    series: "セクター",
+    sector: "ホイール扇区",
+    pocket: "ポケット距離 (Top 1-3)",
+    depth: "深度",
+    spins: "スピン",
+    cw: "時計回り",
+    acw: "反時計回り",
+    matched: "一致基準",
+    hit: "当たり!",
+    predictionHit: "予測命中!",
+    lastSpinHit: "前回スピン予測命中!",
+    waiting: "5基準AI予測を有効にするには最低3スピンのデータが必要です。",
+  },
+  es: {
+    title: "Motor de Predicción de 5 Criterios",
+    top3: "Top 3 Números Recomendados",
+    color: "Color",
+    final: "Dígito Final",
+    series: "Serie",
+    sector: "Sector de Rueda",
+    pocket: "Pasos de Bolsillos (Top 1-3)",
+    depth: "Profundidad",
+    spins: "Giros",
+    cw: "CW",
+    acw: "ACW",
+    matched: "Criterios Coincidentes",
+    hit: "¡ACIERTO!",
+    predictionHit: "¡PREDICCIÓN ACERTADA!",
+    lastSpinHit: "¡PREDICCIÓN DEL ÚLTIMO GIRO ACERTADA!",
+    waiting: "Ingresa al menos 3 giros para activar el modelo de 5 criterios.",
+  },
+  ko: {
+    title: "5가지 기준 예측 엔진",
+    top3: "추천 번호 Top 3",
+    color: "색상",
+    final: "끝수",
+    series: "구역",
+    sector: "휠 섹터",
+    pocket: "포켓 디스턴스 (Top 1-3)",
+    depth: "깊이",
+    spins: "스핀",
+    cw: "시계방향",
+    acw: "반시계방향",
+    matched: "일치 기준",
+    hit: "적중!",
+    predictionHit: "예측 적중!",
+    lastSpinHit: "이전 스핀 예측 적중 성공!",
+    waiting: "5가지 기준 예측을 활성화하려면 최소 3회의 스핀을 입력하세요.",
+  },
+  vi: {
+    title: "Động Cơ Dự Đoán 5 Tiêu Chí",
+    top3: "Top 3 Số Đề Xuất Phổ Biến",
+    color: "Xu Hướng Màu Sắc",
+    final: "Xu Hướng Số Cuối",
+    series: "Phân Vùng Bánh Xe",
+    sector: "Khối Bánh Xe",
+    pocket: "Khoảng Cách Ô (Top 1-3)",
+    depth: "Độ Sâu",
+    spins: "Vòng Quay",
+    cw: "Theo Kim ĐH",
+    acw: "Ngược Kim ĐH",
+    matched: "Tiêu Chí Trùng Khớp",
+    hit: "TRÚNG!",
+    predictionHit: "DỰ ĐOÁN TRÚNG!",
+    lastSpinHit: "DỰ ĐOÁN VÒNG TRƯỚC ĐÃ TRÚNG!",
+    waiting: "Vui lòng nhập ít nhất 3 vòng quay để kích hoạt động cơ dự đoán 5 tiêu chí.",
+  },
+};
+
+interface MultiCriteriaPredictionCardProps {
+  prediction: ComplexPrediction | null; // Prediction for upcoming spin
+  lastPrediction?: ComplexPrediction | null; // Prediction for last spin
+  lang: Language;
+  sectorSplitMode?: SectorSplitMode;
+  onSectorSplitChange?: (mode: SectorSplitMode) => void;
+  lastSpin?: number | null;
+  lastHitStatus?: HitStatus | null;
+  isPro?: boolean;
+  onActivated?: () => void;
+}
+
+export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardProps> = ({
+  prediction,
+  lastPrediction,
+  lang,
+  sectorSplitMode = '9',
+  onSectorSplitChange,
+  lastSpin,
+  lastHitStatus,
+  isPro = true,
+  onActivated = () => {},
+}) => {
+  const t = labels[lang] || labels['en'];
+
+  if (!isPro) {
+    return (
+      <div className="bg-zinc-950 p-3.5 sm:p-4 rounded-xl border border-amber-500/50 shadow-xl space-y-3 relative overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔒</span>
+            <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+              {t.title} (VIP Locked)
+            </h3>
+          </div>
+          <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full">
+            请输入有效激活码解锁
+          </span>
+        </div>
+
+        <div className="bg-zinc-900/90 p-3 rounded-xl border border-gray-800 text-center space-y-2">
+          <p className="text-xs font-bold text-amber-300">
+            🔒 请输入有效激活码解锁 5 维智能预测引擎
+          </p>
+          <p className="text-[11px] text-gray-400">
+            Please enter a valid activation code to unlock the 5-criteria prediction engine.
+          </p>
+        </div>
+
+        <VipActivationCard isPro={isPro} onActivated={onActivated} lang={lang} compact={true} />
+      </div>
+    );
+  }
+
+  if (!prediction) {
+    return (
+      <div className="bg-zinc-950 p-2.5 rounded-xl border border-gray-800 text-center space-y-1 shadow-sm">
+        <div className="flex items-center justify-center gap-1.5 text-gold text-xs font-black uppercase tracking-wider">
+          <span>{t.title}</span>
+        </div>
+        <p className="text-[10px] text-gray-400 font-bold italic animate-pulse">
+          {t.waiting}
+        </p>
+      </div>
+    );
+  }
+
+  const { color, finalDigits, series, sector, pocket, topNumbers } = prediction;
+
+  const isLastSpinValid = lastSpin !== undefined && lastSpin !== null;
+
+  // Evaluate hit status ONLY for the LAST spin against the LAST prediction
+  const isTopHit = isLastSpinValid && (lastHitStatus?.top ?? (lastPrediction?.topNumbers.some(tn => tn.num === lastSpin) ?? false));
+  const isColorHit = isLastSpinValid && (lastHitStatus?.color ?? (lastPrediction?.color !== null && lastPrediction?.color === NUMBER_COLORS[lastSpin]));
+  const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (lastPrediction?.finalDigits.includes(lastSpin % 10) ?? false));
+  const isSeriesHit = isLastSpinValid && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series === getSeriesType(lastSpin)));
+  const isSectorHit = isLastSpinValid && (lastHitStatus?.sector ?? (lastPrediction?.sector?.numbers?.includes(lastSpin) ?? false));
+  const isPocketHit = isLastSpinValid && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
+
+  const hasAnyHit = isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit;
+
+  // Rank of lastSpin in last prediction if hit
+  const hitTopIndex = lastPrediction?.topNumbers.findIndex(tn => tn.num === lastSpin);
+  const hitTopRank = hitTopIndex !== undefined && hitTopIndex !== -1 ? hitTopIndex + 1 : null;
+
+  return (
+    <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-xl border border-gold/40 shadow-lg space-y-2.5 transition-all">
+      {/* LAST SPIN HIT ANNOUNCEMENT BANNER */}
+      {isLastSpinValid && hasAnyHit && (
+        <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 border-2 border-emerald-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/25 animate-bounce space-y-1.5">
+          <div className="flex items-center justify-between border-b border-emerald-500/30 pb-1">
+            <div className="flex items-center gap-1.5 text-xs font-black text-emerald-300 uppercase tracking-wider">
+              <span className="text-sm">🎯</span>
+              <span>{t.lastSpinHit} — #{lastSpin}</span>
+            </div>
+            <span className="text-[10px] font-extrabold bg-emerald-400 text-black px-2.5 py-0.5 rounded-full uppercase shadow-sm">
+              🎯 {t.hit}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
+            {isTopHit && (
+              <span className="bg-emerald-400 text-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                🎯 Top 3 Recommended Hit {hitTopRank ? `(Rank #${hitTopRank}: ${lastSpin})` : `(#${lastSpin})`}
+              </span>
+            )}
+            {isColorHit && (
+              <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
+                🎨 Colour Hit ({lastPrediction?.color ? lastPrediction.color.toUpperCase() : NUMBER_COLORS[lastSpin].toUpperCase()})
+              </span>
+            )}
+            {isFinalHit && (
+              <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
+                🔢 Final Digit Hit ({lastSpin % 10})
+              </span>
+            )}
+            {isSeriesHit && (
+              <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
+                🧭 Series Hit ({lastPrediction?.series || getSeriesType(lastSpin)})
+              </span>
+            )}
+            {isSectorHit && (
+              <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
+                🎯 Sector Hit ({lastPrediction?.sector?.predictedSectorName || 'Sector'})
+              </span>
+            )}
+            {isPocketHit && (
+              <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
+                📏 Pocket Distance Step Hit
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Engine Header */}
+      <div className="flex items-center justify-between border-b border-gray-800/80 pb-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <h3 className="text-xs font-black text-gold uppercase tracking-wider">
+            {t.title}
+          </h3>
+          <span className="text-[9px] font-bold text-gray-400 bg-zinc-900 px-2 py-0.5 rounded-full border border-gray-800">
+            For Next Spin
+          </span>
+        </div>
+
+        {/* Sector Split Mode Selector */}
+        <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-lg border border-gray-800">
+          <span className="text-[9px] font-black text-gray-400 uppercase px-1">Sector:</span>
+          {(['9', '12', '6', '4'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => onSectorSplitChange?.(m)}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${
+                sectorSplitMode === m
+                  ? 'bg-gold text-black shadow-xs font-extrabold'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {m}S
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Top 3 Recommended Numbers Section for Upcoming Spin */}
+      <div className="p-2 rounded-xl border bg-zinc-900/90 border-gray-800 space-y-1.5 transition-all">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase text-gold tracking-wider flex items-center gap-1">
+            <span>🎯</span> {t.top3}
+          </span>
+          <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.2 rounded-full uppercase">
+            AI Score Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5">
+          {topNumbers.map(({ num, confidence, matchedCriteria }, idx) => {
+            const colorName = NUMBER_COLORS[num];
+            const isRank1 = idx === 0;
+
+            return (
+              <div
+                key={num}
+                className={`flex items-center justify-between p-1.5 rounded-lg border transition-all ${
+                  isRank1
+                    ? 'bg-zinc-950 border-gold/70 ring-1 ring-gold/40'
+                    : 'bg-zinc-950/80 border-gray-800'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`text-[9px] font-black w-4 h-4 rounded flex items-center justify-center ${
+                      isRank1
+                        ? 'bg-gold text-black'
+                        : 'bg-zinc-800 text-gray-400'
+                    }`}
+                  >
+                    #{idx + 1}
+                  </span>
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-xs shadow-md border ${colorClasses[colorName]}`}
+                  >
+                    {num}
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black leading-none text-amber-400">
+                    {confidence}%
+                  </span>
+                  <div className="flex gap-0.5 mt-0.5 flex-wrap justify-end">
+                    {matchedCriteria && matchedCriteria.length > 0 ? (
+                      matchedCriteria.slice(0, 4).map((crit, cIdx) => {
+                        const tagMap: Record<string, string> = {
+                          Colour: 'Clr',
+                          Final: 'Fin',
+                          Series: 'Ser',
+                          Sector: 'Sec',
+                          Pocket: 'Pkt',
+                          Pattern: 'Pat',
+                        };
+                        const shortTag = tagMap[crit] || crit.slice(0, 3);
+                        return (
+                          <span
+                            key={cIdx}
+                            className={`text-[7px] font-black px-1 py-0.2 rounded border ${
+                              crit === 'Pattern'
+                                ? 'text-amber-300 bg-amber-950/80 border-amber-500/40'
+                                : 'text-gold bg-zinc-800/90 border-gold/20'
+                            }`}
+                            title={crit}
+                          >
+                            {shortTag}
+                          </span>
+                        );
+                      })
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 5 Prediction Criteria Sub-Grid for Upcoming Spin */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
+        {/* Row 1: 3 Compact Criteria (Colour, Final, Series) */}
+        <div className="md:col-span-3 grid grid-cols-3 gap-1">
+          {/* Colour */}
+          <div className="p-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex items-center justify-between transition-all">
+            <span className="text-[9px] font-black uppercase flex items-center gap-1 text-gray-400">
+              🎨 {t.color}
+            </span>
+            <div className="flex items-center gap-1">
+              {color ? (
+                <div
+                  className={`w-4 h-4 rounded flex items-center justify-center text-[9px] font-black transition-all ${
+                    color === 'red'
+                      ? 'bg-roulette-red text-white'
+                      : color === 'black'
+                      ? 'bg-roulette-black text-white border border-gray-700'
+                      : 'bg-roulette-green text-white'
+                  }`}
+                >
+                  {color === 'red' ? 'R' : color === 'black' ? 'B' : 'G'}
+                </div>
+              ) : (
+                <span className="text-[9px] font-black text-gray-500">?</span>
+              )}
+            </div>
+          </div>
+
+          {/* Final Digit */}
+          <div className="p-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex items-center justify-between transition-all">
+            <span className="text-[9px] font-black uppercase flex items-center gap-1 text-gray-400">
+              🔢 {t.final}
+            </span>
+            <div className="flex gap-0.5">
+              {finalDigits.length > 0 ? (
+                finalDigits.map((f, i) => (
+                  <span key={i} className="text-[10px] font-black text-gold">
+                    {f}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[9px] font-black text-gray-500">?</span>
+              )}
+            </div>
+          </div>
+
+          {/* Series */}
+          <div className="p-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex items-center justify-between transition-all">
+            <span className="text-[9px] font-black uppercase flex items-center gap-1 text-gray-400">
+              🧭 {t.series}
+            </span>
+            <span
+              className={`text-[10px] font-black truncate ${
+                series === 'Top'
+                  ? 'text-blue-400'
+                  : series === 'Small'
+                  ? 'text-yellow-400'
+                  : series === 'Middle'
+                  ? 'text-purple-400'
+                  : 'text-gray-400'
+              }`}
+            >
+              {series === 'Top' ? 'Voisins' : series === 'Small' ? 'Tiers' : series === 'Middle' ? 'Orphelins' : '?'}
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic Sector Prediction */}
+        <div className="p-1.5 sm:p-2 rounded-lg border bg-zinc-900/90 border-gray-800 space-y-1 transition-all">
+          <div className="flex items-center justify-between text-[9px] font-black uppercase">
+            <span className="flex items-center gap-1 text-gray-400">
+              <span>🎯</span> {t.sector} ({sectorSplitMode}S)
+            </span>
+            <span className="text-amber-300 font-extrabold">
+              {sector ? sector.predictedSectorName : '?'}
+            </span>
+          </div>
+
+          {sector && sector.numbers && sector.numbers.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-0.5 pt-0.5">
+              {sector.numbers.map((n) => {
+                const nColor = NUMBER_COLORS[n];
+                const bgClass =
+                  nColor === 'red'
+                    ? 'bg-roulette-red text-white'
+                    : nColor === 'black'
+                    ? 'bg-roulette-black text-white border border-gray-700'
+                    : 'bg-roulette-green text-white';
+                return (
+                  <span
+                    key={n}
+                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shadow-xs ${bgClass}`}
+                  >
+                    {n}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="text-[9px] font-bold text-gray-500">?</span>
+          )}
+        </div>
+
+        {/* Pocket Distance Prediction */}
+        <div className="p-1.5 sm:p-2 rounded-lg border bg-zinc-900/90 border-gray-800 space-y-1 md:col-span-2 transition-all">
+          <div className="flex items-center justify-between text-[9px] font-black uppercase">
+            <span className="flex items-center gap-1 text-gray-400">
+              <span>📏</span> {t.pocket}
+            </span>
+            <span className="text-gold font-bold text-[8px]">Top 1-3 History Steps</span>
+          </div>
+
+          {pocket && pocket.topSteps && pocket.topSteps.length > 0 ? (
+            <div className="grid grid-cols-3 gap-1 pt-0.5">
+              {pocket.topSteps.slice(0, 3).map((stepItem, sIdx) => {
+                const cwColor = NUMBER_COLORS[stepItem.cwTarget];
+                const acwColor = NUMBER_COLORS[stepItem.acwTarget];
+
+                const cwBg =
+                  cwColor === 'red'
+                    ? 'bg-roulette-red text-white'
+                    : cwColor === 'black'
+                    ? 'bg-roulette-black text-white border border-gray-700'
+                    : 'bg-roulette-green text-white';
+
+                const acwBg =
+                  acwColor === 'red'
+                    ? 'bg-roulette-red text-white'
+                    : acwColor === 'black'
+                    ? 'bg-roulette-black text-white border border-gray-700'
+                    : 'bg-roulette-green text-white';
+
+                return (
+                  <div
+                    key={sIdx}
+                    className="p-1 rounded border bg-zinc-950 border-gray-800/80 flex flex-col justify-between transition-all"
+                  >
+                    <div className="flex items-center justify-between text-[8px] font-black text-gray-400 mb-0.5">
+                      <span className="text-gold">#{sIdx + 1}</span>
+                      <span>+{stepItem.distance} pk</span>
+                    </div>
+
+                    <div className="flex items-center justify-around gap-0.5">
+                      {/* CW Target */}
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[7px] font-black text-emerald-400">CW</span>
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black shadow-xs ${cwBg}`}>
+                          {stepItem.cwTarget}
+                        </div>
+                      </div>
+
+                      {/* ACW Target */}
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[7px] font-black text-cyan-400">ACW</span>
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black shadow-xs ${acwBg}`}>
+                          {stepItem.acwTarget}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : pocket ? (
+            <div className="flex items-center gap-1.5 text-[9px] font-black text-emerald-400">
+              <span>CW: {pocket.cwTarget}</span>
+              <span className="text-gray-500">•</span>
+              <span className="text-cyan-400">ACW: {pocket.acwTarget}</span>
+            </div>
+          ) : (
+            <span className="text-[9px] font-bold text-gray-500">?</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+

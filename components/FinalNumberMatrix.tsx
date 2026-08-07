@@ -1,10 +1,65 @@
 import React, { useMemo } from 'react';
+import type { Language } from '../types';
 
 interface FinalNumberMatrixProps {
   history: number[];
+  lang?: Language;
 }
 
-export const FinalNumberMatrix: React.FC<FinalNumberMatrixProps> = ({ history }) => {
+const matrixLabels = {
+  en: {
+    lastFinal: 'Last Final:',
+    activeRow: 'Active Row:',
+    none: 'None',
+    lastHit: 'Last Hit',
+    nextPossible: 'Next Possible',
+    freqScale: 'Freq Scale:',
+  },
+  zh: {
+    lastFinal: '最新尾数：',
+    activeRow: '活跃行：',
+    none: '无',
+    lastHit: '最新命中',
+    nextPossible: '预测下一位',
+    freqScale: '频次阶梯：',
+  },
+  ja: {
+    lastFinal: '最新下一桁:',
+    activeRow: 'アクティブ行:',
+    none: 'なし',
+    lastHit: '最新ヒット',
+    nextPossible: '次予測',
+    freqScale: '頻度スケール:',
+  },
+  es: {
+    lastFinal: 'Último Dígito:',
+    activeRow: 'Fila Activa:',
+    none: 'Ninguno',
+    lastHit: 'Último Acierto',
+    nextPossible: 'Siguiente Posible',
+    freqScale: 'Escala Frec.:',
+  },
+  ko: {
+    lastFinal: '최근 끝수:',
+    activeRow: '활성 행:',
+    none: '없음',
+    lastHit: '최근 적중',
+    nextPossible: '다음 예측',
+    freqScale: '빈도 스케일:',
+  },
+  vi: {
+    lastFinal: 'Số Cuối Mới Nhất:',
+    activeRow: 'Hàng Đang Hoạt Động:',
+    none: 'Không',
+    lastHit: 'Vừa Trúng',
+    nextPossible: 'Có Khả Năng Tiếp Theo',
+    freqScale: 'Thang Tần Suất:',
+  },
+};
+
+export const FinalNumberMatrix: React.FC<FinalNumberMatrixProps> = ({ history, lang = 'en' }) => {
+  const t = matrixLabels[lang] || matrixLabels.en;
+
   // Sequence as requested: 1, 2, 3, 4, 5, 6, 7, 8, 9, 0
   const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
   const rowDigits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -41,7 +96,6 @@ export const FinalNumberMatrix: React.FC<FinalNumberMatrixProps> = ({ history })
   const getCellStyles = (val: number, isLast: boolean, isActiveRow: boolean) => {
     if (isLast) return 'bg-gold text-black z-10 scale-110 shadow-[0_0_15px_rgba(255,215,0,0.9)] ring-2 ring-white dark:ring-gray-900 border-none font-black';
     
-    // If it's the active row (based on last spin), give it a subtle pulse or glow if it has data
     if (isActiveRow && val > 0) {
       return 'bg-yellow-400/40 text-gray-900 dark:text-white border-yellow-500 shadow-[0_0_8px_rgba(255,215,0,0.4)] animate-pulse';
     }
@@ -60,7 +114,7 @@ export const FinalNumberMatrix: React.FC<FinalNumberMatrixProps> = ({ history })
       {/* Matrix Header Labels */}
       <div className="flex justify-between items-center px-1 mb-1">
         <div className="flex items-center gap-2">
-           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Last Final:</span>
+           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t.lastFinal}</span>
            {lastFinalDigit !== null ? (
              <div className="w-7 h-7 rounded-full bg-gold text-black flex items-center justify-center font-black text-sm shadow-md animate-bounce">
                 {lastFinalDigit}
@@ -68,13 +122,13 @@ export const FinalNumberMatrix: React.FC<FinalNumberMatrixProps> = ({ history })
            ) : <span className="text-gray-400 text-[10px] font-bold">-</span>}
         </div>
         <div className="text-[10px] font-bold text-gold uppercase tracking-widest flex items-center gap-2">
-          <span className="hidden sm:inline">Active Row: {lastFinalDigit !== null ? `${lastFinalDigit}-X` : 'None'}</span>
+          <span className="hidden sm:inline">{t.activeRow} {lastFinalDigit !== null ? `${lastFinalDigit}-X` : t.none}</span>
           <div className="w-2 h-2 bg-yellow-500 rounded-full animate-ping"></div>
         </div>
       </div>
 
       {/* 10x10 Grid */}
-      <div className="grid grid-cols-10 gap-0.5 sm:gap-1 bg-gray-300 dark:bg-black/40 p-1 rounded-lg">
+      <div className="grid grid-cols-10 gap-0.5 sm:gap-1 bg-zinc-800/50 p-1 rounded-lg border border-gray-700/50">
         {rowDigits.map(rowIdx => (
           <React.Fragment key={`row-${rowIdx}`}>
             {digits.map(colIdx => {
@@ -110,15 +164,15 @@ export const FinalNumberMatrix: React.FC<FinalNumberMatrixProps> = ({ history })
         <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
                 <div className="w-2.5 h-2.5 bg-gold rounded-sm shadow-[0_0_4px_gold]"></div>
-                <span className="text-gold">Last Hit</span>
+                <span className="text-gold">{t.lastHit}</span>
             </div>
             <div className="flex items-center gap-1">
                 <div className="w-2.5 h-2.5 bg-yellow-400/40 border border-yellow-500 animate-pulse"></div>
-                <span>Next Possible</span>
+                <span>{t.nextPossible}</span>
             </div>
         </div>
         <div className="flex items-center gap-1">
-            <span>Freq Scale:</span>
+            <span>{t.freqScale}</span>
             <div className="flex h-1.5 w-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800">
                 <div className="w-1/3 bg-yellow-500/20"></div>
                 <div className="w-1/3 bg-yellow-500/60"></div>

@@ -35,7 +35,7 @@ export const BettingChart: React.FC<BettingChartProps> = ({ bettingMap }) => {
         key={num}
         disabled={true} // Not clickable, just for display
         className={`font-semibold rounded-md text-sm md:text-lg w-full aspect-square flex items-center justify-center relative transition-all duration-300
-          ${hasBet ? colorClasses[NUMBER_COLORS[num]] : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}
+          ${hasBet ? colorClasses[NUMBER_COLORS[num]] : 'bg-gray-200 dark:bg-gray-900/40 text-gray-500 border border-transparent dark:border-gray-800/50'}
         `}
       >
         {num}
