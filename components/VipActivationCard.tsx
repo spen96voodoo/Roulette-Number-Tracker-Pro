@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { verifyAndActivateCodeLocal, SAMPLE_VIP_CODES } from '../lib/license';
+import { verifyAndActivateCodeLocal } from '../lib/license';
 import type { Language } from '../types';
 
 interface VipActivationCardProps {
@@ -123,10 +123,6 @@ export const VipActivationCard: React.FC<VipActivationCardProps> = ({
     }
   };
 
-  const handleCopyCode = (sampleCode: string) => {
-    setCode(sampleCode);
-  };
-
   if (isPro) {
     return (
       <div className={`bg-gradient-to-r from-amber-950/80 via-zinc-900 to-amber-950/80 p-4 rounded-2xl border border-gold/60 shadow-xl flex items-center justify-between gap-3 ${compact ? 'py-3' : ''}`}>
@@ -219,28 +215,6 @@ export const VipActivationCard: React.FC<VipActivationCardProps> = ({
             </span>
           </div>
         )}
-
-        {/* Quick sample code helper chips */}
-        <div className="pt-2 border-t border-gray-800/80">
-          <p className="text-[10px] font-bold text-gray-400 mb-1.5 flex items-center gap-1">
-            <span>🔑</span>
-            <span>{t.sampleCodeTitle}</span>
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {SAMPLE_VIP_CODES.map((sample, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleCopyCode(sample)}
-                className="text-[10px] font-mono font-bold bg-amber-500/10 hover:bg-amber-500/20 text-gold border border-gold/40 px-2 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-1"
-                title="Click to fill"
-              >
-                <span>{sample}</span>
-                <span className="text-[9px] text-gray-400">📋</span>
-              </button>
-            ))}
-          </div>
-        </div>
       </form>
     </div>
   );
