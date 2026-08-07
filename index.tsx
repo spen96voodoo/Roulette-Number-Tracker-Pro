@@ -18,4 +18,17 @@ root.render(
   </React.StrictMode>
 );
 
+// Guarantee splash screen removal as soon as React mounts
+try {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.style.opacity = '0';
+    setTimeout(() => {
+      try { splash.remove(); } catch (e) {}
+    }, 200);
+  }
+} catch (e) {
+  // Ignore
+}
+
 

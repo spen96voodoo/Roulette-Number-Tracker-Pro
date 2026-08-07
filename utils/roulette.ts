@@ -87,7 +87,13 @@ export const getMultiCriteriaPrediction = (
 ): ComplexPrediction | null => {
     if (history.length < 3) return null;
 
-    const { colorDepth, finalDepth, seriesDepth, sectorsDepth, pocketsDepth } = depths;
+    const { 
+        colorDepth = 5, 
+        finalDepth = 5, 
+        seriesDepth = 5, 
+        sectorsDepth = 5, 
+        pocketsDepth = 5 
+    } = depths || {};
     const lastNumber = history[history.length - 1];
 
     // 1. COLOUR PREDICTION (using colorDepth)

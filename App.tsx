@@ -214,12 +214,15 @@ const App: React.FC = () => {
     };
   }, []);
   
-  const [fiveDepths, setFiveDepths] = useState<FiveCriteriaDepths>(() => initialSession?.fiveDepths || {
-    colorDepth: 5,
-    finalDepth: 5,
-    seriesDepth: 5,
-    sectorsDepth: 5,
-    pocketsDepth: 5,
+  const [fiveDepths, setFiveDepths] = useState<FiveCriteriaDepths>(() => {
+    const d = initialSession?.fiveDepths;
+    return {
+      colorDepth: d?.colorDepth || 5,
+      finalDepth: d?.finalDepth || 5,
+      seriesDepth: d?.seriesDepth || 5,
+      sectorsDepth: d?.sectorsDepth || 5,
+      pocketsDepth: d?.pocketsDepth || 5,
+    };
   });
 
   const [sectorSplitMode, setSectorSplitMode] = useState<SectorSplitMode>('9');
@@ -248,7 +251,7 @@ const App: React.FC = () => {
     }
   };
 
-  const t = (key: keyof typeof translations['en']) => translations[lang][key] || translations['en'][key];
+  const t = (key: keyof typeof translations['en']) => translations[lang]?.[key] || translations['en'][key] || '';
 
   const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'error' | 'success') => {
     try {
