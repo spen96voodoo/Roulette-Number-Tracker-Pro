@@ -85,8 +85,8 @@ const FRENCH_0_SECTORS: SectorDef[] = [
   },
   {
     id: 'voisins',
-    name: 'Voisins du Zéro',
-    shortName: 'Voisins',
+    name: 'Top series',
+    shortName: 'Top series',
     numbers: [22, 18, 29, 7, 28, 19, 4, 21, 2, 25],
     fillHex: '#f59e0b',
     color: 'text-amber-400',
@@ -105,8 +105,8 @@ const FRENCH_0_SECTORS: SectorDef[] = [
   },
   {
     id: 'tiers',
-    name: 'Tiers du Cylindre',
-    shortName: 'Tiers',
+    name: 'Small series',
+    shortName: 'Small series',
     numbers: [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33],
     fillHex: '#06b6d4',
     color: 'text-cyan-400',
@@ -1010,7 +1010,7 @@ export const RouletteWheelTracker: React.FC<RouletteWheelTrackerProps> = ({
         <div className="flex items-center justify-between border-b border-gray-800 pb-2">
           <h4 className="text-xs font-black text-gold uppercase tracking-widest flex items-center gap-1.5">
             <span className="bg-gold text-black text-[9px] px-1.5 py-0.2 rounded font-black">4</span>
-            <span>Sector Heat Breakdown ({sectors.length} Sectors)</span>
+            <span>Series Heat Breakdown ({sectors.length} Sectors)</span>
           </h4>
           <span className="text-[10px] text-gray-400 font-medium">
             Total Spins: <strong className="text-white">{history.length}</strong>

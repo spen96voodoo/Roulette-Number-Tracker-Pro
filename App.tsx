@@ -33,7 +33,7 @@ const translations = {
         title: "Roulette Tracker Pro All in one", strategy: "Closed Numbers", history: "History", alerts: "Alerts", undo: "Undo", clear: "Clear",
         roadmap: "Roadmap", functions: "Functions", setup: "Set Up", pl: "P/L", bet: "Unit", waiting: "Waiting for spin...", analyzing: "Analyzing...", empty: "Empty",
         clearTitle: "Clear Records", clearMsg: "This will clear all history. Continue?", confirmBtn: "Yes, Clear", cancelBtn: "Cancel", color: "Color", final: "Final",
-        series: "Series", topNums: "Top Numbers", hit: "HIT!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers",
+        series: "Series", topNums: "Top Numbers", hit: "HIT!", voisins: "Top series", orphelins: "Orphelins", tiers: "Small series",
         restoreTitle: "Restore Session", restoreMsg: "Previous session data found. Restore it?", restoreBtn: "Restore", newSessionBtn: "New Session",
         spinsLookback: "Spins"
     },
@@ -41,7 +41,7 @@ const translations = {
         title: "Roulette Tracker Pro All in one", strategy: "相邻闭合号码", history: "历史记录", alerts: "模式警报", undo: "撤销", clear: "清空重置",
         roadmap: "区域路单", functions: "分析功能", setup: "设置", pl: "盈亏", bet: "注数", waiting: "等待旋转...", analyzing: "正在分析...", empty: "无数据",
         clearTitle: "清空重置应用数据", clearMsg: "确定要清空所有历史数据与分析记录吗？此操作无法撤销。", confirmBtn: "确认清空", cancelBtn: "取消", color: "颜色", final: "尾数",
-        series: "分区", topNums: "核心推荐", hit: "命中!", voisins: "零区", orphelins: "孤注", tiers: "三区",
+        series: "分区", topNums: "核心推荐", hit: "命中!", voisins: "Top series", orphelins: "孤注", tiers: "Small series",
         restoreTitle: "恢复会话", restoreMsg: "发现之前的会話数据。是否恢复？", restoreBtn: "恢复", newSessionBtn: "新会话",
         spinsLookback: "最近轮次"
     },
@@ -49,7 +49,7 @@ const translations = {
         title: "Roulette Tracker Pro All in one", strategy: "隣接閉鎖番号", history: "履歴", alerts: "アラート", undo: "戻る", clear: "リセット",
         roadmap: "ロードマップ", functions: "分析機能", setup: "設定", pl: "損益", bet: "ユニット", waiting: "スピン待機中...", analyzing: "分析中...", empty: "データなし",
         clearTitle: "データのリセット", clearMsg: "すべてのスピン履歴およびデータを削除します。実行しますか？", confirmBtn: "リセット実行", cancelBtn: "キャンセル", color: "カラー", final: "下一桁",
-        series: "セクター", topNums: "推奨番号", hit: "当たり!", voisins: "0区", orphelins: "孤立区", tiers: "3区",
+        series: "セクター", topNums: "推奨番号", hit: "当たり!", voisins: "Top series", orphelins: "孤立区", tiers: "Small series",
         restoreTitle: "セッションの復元", restoreMsg: "以前のセッションデータが見つかりました。復元しますか？", restoreBtn: "復元", newSessionBtn: "新規",
         spinsLookback: "直近スピン"
     },
@@ -57,7 +57,7 @@ const translations = {
         title: "Roulette Tracker Pro All in one", strategy: "Números Cerrados", history: "Historial", alerts: "Alertas", undo: "Deshacer", clear: "Limpiar App",
         roadmap: "Hoja de Ruta", functions: "Funciones", setup: "Ajustes", pl: "G/P", bet: "Unidades", waiting: "Esperando giro...", analyzing: "Analizando...", empty: "Vacío",
         clearTitle: "Limpiar y Reiniciar App", clearMsg: "¿Esta seguro de que desea borrar todo el historial y reiniciar? Esta acción no se puede deshacer.", confirmBtn: "Sí, Reiniciar", cancelBtn: "Cancelar", color: "Color", final: "Final",
-        series: "Serie", topNums: "Números Top", hit: "¡ACIERTO!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers",
+        series: "Serie", topNums: "Números Top", hit: "¡ACIERTO!", voisins: "Top series", orphelins: "Orphelins", tiers: "Small series",
         restoreTitle: "Restaurar Sesión", restoreMsg: "Se encontraron datos de la sesión anterior. ¿Restaurar?", restoreBtn: "Restaurar", newSessionBtn: "Nueva",
         spinsLookback: "Giros"
     },
@@ -65,7 +65,7 @@ const translations = {
         title: "Roulette Tracker Pro All in one", strategy: "인접 닫힌 번호", history: "히스토리", alerts: "알림", undo: "실행 취소", clear: "앱 초기화",
         roadmap: "로드맵", functions: "기능 센터", setup: "설정", pl: "손익", bet: "유닛", waiting: "스핀 대기 중...", analyzing: "분석 중...", empty: "데이터 없음",
         clearTitle: "앱 데이터 초기화", clearMsg: "모든 히스토리와 분석 데이터가 삭제됩니다. 초기화하시겠습니까?", confirmBtn: "예, 초기화", cancelBtn: "취소", color: "색상", final: "끝수",
-        series: "구역", topNums: "추천 번호", hit: "적중!", voisins: "0구역", orphelins: "고립구역", tiers: "3구역",
+        series: "구역", topNums: "추천 번호", hit: "적중!", voisins: "Top series", orphelins: "고립구역", tiers: "Small series",
         restoreTitle: "세션 복구", restoreMsg: "이전 세션 데이터가 있습니다. 복구하시겠습니까?", restoreBtn: "복구", newSessionBtn: "새 세션",
         spinsLookback: "최근 스핀"
     },
@@ -73,7 +73,7 @@ const translations = {
         title: "Roulette Tracker Pro All in one", strategy: "Số Lân Cận Khép Kín", history: "Lịch Sử", alerts: "Cảnh Báo Mẫu", undo: "Hoàn Tác", clear: "Xóa Dữ Liệu",
         roadmap: "Sơ Đồ Luồng", functions: "Chức Năng", setup: "Cài Đặt", pl: "Lời/Lỗ", bet: "Đơn Vị", waiting: "Đang chờ vòng quay...", analyzing: "Đang phân tích...", empty: "Trống",
         clearTitle: "Xóa Dữ Liệu Ứng Dụng", clearMsg: "Thao tác này sẽ xóa toàn bộ lịch sử và ghi chép. Bạn có chắc chắn muốn tiếp tục?", confirmBtn: "Đồng Ý Xóa", cancelBtn: "Hủy Bỏ", color: "Màu Sắc", final: "Số Cuối",
-        series: "Phân Vùng", topNums: "Top Đề Xuất", hit: "TRÚNG!", voisins: "Voisins", orphelins: "Orphelins", tiers: "Tiers",
+        series: "Phân Vùng", topNums: "Top Đề Xuất", hit: "TRÚNG!", voisins: "Top series", orphelins: "Orphelins", tiers: "Small series",
         restoreTitle: "Khôi Phục Phiên", restoreMsg: "Tìm thấy dữ liệu phiên trước. Bạn có muốn khôi phục không?", restoreBtn: "Khôi Phục", newSessionBtn: "Phiên Mới",
         spinsLookback: "Vòng Quay Gần Đây"
     }
@@ -485,7 +485,7 @@ const App: React.FC = () => {
                         { id: 'distance', label: '📏 Pocket Distance', desc: '0-18 Wheel Steps' },
                         { id: 'dozens', label: '📊 Dozens & Cols', desc: 'Distribution' },
                         { id: 'stats', label: '🎨 Color & Odds', desc: 'Ratios & Streaks' },
-                        { id: 'series', label: '🧭 Sector Heat', desc: 'Voisins/Tiers' },
+                        { id: 'series', label: '🧭 Series Heat', desc: 'Top series/Small series' },
                         { id: 'matrix', label: '🔢 Final Matrix', desc: '0-9 Endings' },
                         { id: 'patterns', label: '⚡ Pattern Alerts', desc: 'Sequences' },
                       ].map(f => (

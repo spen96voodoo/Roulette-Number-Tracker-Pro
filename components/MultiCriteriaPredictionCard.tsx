@@ -430,7 +430,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                   : 'text-gray-400'
               }`}
             >
-              {series === 'Top' ? 'Voisins' : series === 'Small' ? 'Tiers' : series === 'Middle' ? 'Orphelins' : '?'}
+              {series === 'Top' ? 'Top series' : series === 'Small' ? 'Small series' : series === 'Middle' ? 'Orphelins' : '?'}
             </span>
           </div>
         </div>

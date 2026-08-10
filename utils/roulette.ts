@@ -36,9 +36,9 @@ export const getSectorsForSplitMode = (mode: SectorSplitMode = '9') => {
     } else if (mode === '0') {
         return [
             { id: 'zero-spiel', name: '0-Spiel (7 nums)', numbers: [12, 35, 3, 26, 0, 32, 15] },
-            { id: 'voisins', name: 'Voisins (10 nums)', numbers: [22, 18, 29, 7, 28, 19, 4, 21, 2, 25] },
+            { id: 'voisins', name: 'Top series (10 nums)', numbers: [22, 18, 29, 7, 28, 19, 4, 21, 2, 25] },
             { id: 'orphelins', name: 'Orphelins (8 nums)', numbers: [1, 20, 14, 31, 9, 17, 34, 6] },
-            { id: 'tiers', name: 'Tiers (12 nums)', numbers: [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33] },
+            { id: 'tiers', name: 'Small series (12 nums)', numbers: [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33] },
         ];
     } else {
         sliceSizes = [4, 4, 4, 4, 4, 4, 4, 4, 5];
@@ -120,7 +120,7 @@ export const getMultiCriteriaPrediction = (
         likelyColor = (Object.keys(colorCounts) as RouletteColor[]).sort((a,b) => colorCounts[b] - colorCounts[a])[0] || 'red';
     }
 
-    // 2. FINAL DIGIT PREDICTION (using finalDepth)
+    // 2. FINAL DIGIT PREDICTION (using ALL spin numbers in history)
     const lastFinal = lastNumber % 10;
     const fTransitions: Map<number, number> = new Map();
     for (let i = 0; i < history.length - 1; i++) {
@@ -135,14 +135,14 @@ export const getMultiCriteriaPrediction = (
         .map(e => e[0]);
     
     if (finalDigits.length === 0) {
-        const recentFinals = history.slice(-finalDepth).map(n => n % 10);
+        const allFinals = history.map(n => n % 10);
         const finalCounts: Map<number, number> = new Map();
-        recentFinals.forEach(f => finalCounts.set(f, (finalCounts.get(f) || 0) + 1));
-        const topRecentFinals = Array.from(finalCounts.entries())
+        allFinals.forEach(f => finalCounts.set(f, (finalCounts.get(f) || 0) + 1));
+        const topFinals = Array.from(finalCounts.entries())
             .sort((a,b) => b[1] - a[1])
             .slice(0, 2)
             .map(e => e[0]);
-        finalDigits.push(...topRecentFinals);
+        finalDigits.push(...topFinals);
     }
 
     // 3. SERIES PREDICTION (using seriesDepth)
@@ -162,7 +162,7 @@ export const getMultiCriteriaPrediction = (
     }
     const likelySeries: SeriesType | null = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNumber);
 
-    // 4. SECTOR PREDICTION (following last spin to next destination sector, with top hit and closed sector tie-breakers)
+    // 4. SECTOR PREDICTION (using ALL spin numbers in history)
     const activeSectors = getSectorsForSplitMode(sectorSplitMode);
     const getSectorOfNum = (n: number) => activeSectors.find(s => s.numbers.includes(n)) || activeSectors[0];
 
@@ -179,14 +179,13 @@ export const getMultiCriteriaPrediction = (
         lastSector.id // Same sector is also self-closed
     ]);
 
-    // Count overall sector hits across recent history (for top hit sector tie-breaker)
+    // Count overall sector hits across ALL history
     const totalSectorHits: Map<string, number> = new Map();
-    const recentHistoryForSectors = sectorHistory.slice(-Math.max(sectorsDepth, 10));
-    recentHistoryForSectors.forEach(sec => {
+    sectorHistory.forEach(sec => {
         totalSectorHits.set(sec.id, (totalSectorHits.get(sec.id) || 0) + 1);
     });
 
-    // 1-step destination transitions following lastSector ("where does last spin sector go next")
+    // 1-step destination transitions following lastSector across ALL history
     const destinationCounts: Map<string, number> = new Map();
     for (let i = 0; i < sectorHistory.length - 1; i++) {
         if (sectorHistory[i].id === lastSector.id) {
@@ -197,8 +196,8 @@ export const getMultiCriteriaPrediction = (
         }
     }
 
-    // Sequence pattern transitions (secLook depth)
-    const secLook = Math.min(sectorsDepth, sectorHistory.length - 1);
+    // Sequence pattern transitions across ALL history
+    const secLook = Math.min(3, sectorHistory.length - 1);
     const seqSectorTransitions: Map<string, number> = new Map();
     if (secLook >= 2) {
         const targetSecSlice = sectorHistory.slice(-secLook);
@@ -219,11 +218,6 @@ export const getMultiCriteriaPrediction = (
         const totalHits = totalSectorHits.get(sec.id) || 0;
         const isClosed = closedSectorIds.has(sec.id);
 
-        // Scoring hierarchy:
-        // 1. Next destination sector transition from last spin (100 pts per hit)
-        // 2. Multi-step sequence match (50 pts per match)
-        // 3. Top hit sector frequency in recent spins (10 pts per hit)
-        // 4. Closed / Wheel-adjacent sector bonus (15 pts)
         const score = (destTransitions * 100) + (seqTransitions * 50) + (totalHits * 10) + (isClosed ? 15 : 0);
 
         return {
@@ -241,16 +235,13 @@ export const getMultiCriteriaPrediction = (
     const likelySector = topScored?.sector || activeSectors[0];
 
     // Dynamic sector confidence based on destination transition strength
-    const hasTransitions = (topScored?.destTransitions || 0) > 0;
     const sectorConfidence = Math.min(98, Math.max(65, 70 + (topScored?.destTransitions || 0) * 8 + (topScored?.isClosed ? 5 : 0)));
 
-    // 5. POCKETS DISTANCE STEP PREDICTION (using pocketsDepth)
+    // 5. POCKETS DISTANCE STEP PREDICTION (using ALL spin numbers in history)
     const displacements: number[] = [];
-    const pLook = Math.min(pocketsDepth, history.length - 1);
-    const recentHistoryForPockets = history.slice(-(pLook + 1));
-    for (let i = 0; i < recentHistoryForPockets.length - 1; i++) {
-        const start = EUROPEAN_WHEEL_ORDER.indexOf(recentHistoryForPockets[i]);
-        const end = EUROPEAN_WHEEL_ORDER.indexOf(recentHistoryForPockets[i+1]);
+    for (let i = 0; i < history.length - 1; i++) {
+        const start = EUROPEAN_WHEEL_ORDER.indexOf(history[i]);
+        const end = EUROPEAN_WHEEL_ORDER.indexOf(history[i+1]);
         const cwDist = (end - start + 37) % 37;
         const acwDist = (start - end + 37) % 37;
         const minDist = Math.min(cwDist, acwDist);

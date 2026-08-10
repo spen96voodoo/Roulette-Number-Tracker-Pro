@@ -53,7 +53,7 @@ const content = {
         s1P2T: "2. Sector Clustering", s1P2D: "Identifies wheel bias using French regions and dealer rhythms.",
         s2Title: "VIP Intelligence Tools", s2Desc: "Visual data layers revealing deep trends.",
         s2P1T: "Final Digit Frequency Matrix", s2P1D: "Tracks transition probability. Example: If 13 (Final 3) hits, row 3 shows likely next digits.",
-        s2P2T: "Sector Roadway (Heatmap)", s2P2D: "Visualizes Voisins, Orphelins, and Tiers sectors across history.",
+        s2P2T: "Sector Roadway (Heatmap)", s2P2D: "Visualizes Top series, Orphelins, and Small series sectors across history.",
         s3Title: "Execution Strategy", btn: "Initialize System"
     },
     zh: {
@@ -70,7 +70,7 @@ const content = {
         s1P2T: "2. 扇区聚类", s1P2D: "利用法式分区和荷官节奏识别轮盘偏差。",
         s2Title: "VIP 智能工具", s2Desc: "揭示深层趋势的可视化数据层。",
         s2P1T: "尾数频率矩阵", s2P1D: "追踪转换概率。例如：如果命中13（尾数3），第3行显示后续可能的尾数。",
-        s2P2T: "扇区热力图", s2P2D: "可视化历史记录中的零区、孤注和三区分布。",
+        s2P2T: "扇区热力图", s2P2D: "可视化历史记录中的Top series、孤注和Small series分布。",
         s3Title: "执行策略", btn: "初始化系统"
     },
     ja: {
@@ -87,7 +87,7 @@ const content = {
         s1P2T: "2. セクタークラスタリング", s1P2D: "フレンチセクターとディーラーのリズムから物理的バイアスを特定。",
         s2Title: "VIPインテリジェンスツール", s2Desc: "深層トレンドを明らかにするビジュアルデータ。",
         s2P1T: "下一桁頻度マトリックス", s2P1D: "遷移確率を追跡。例：13（下一桁3）が出た場合、行3が次に続く可能性の高い数字を表示。",
-        s2P2T: "セクターロードウェイ", s2P2D: "Voisins、Orphelins、Tiersセクターの履歴を可視化します。",
+        s2P2T: "セクターロードウェイ", s2P2D: "Top series、Orphelins、Small seriesセクターの履歴を可視化します。",
         s3Title: "実行戦略", btn: "システム初期化"
     },
     es: {
@@ -104,7 +104,7 @@ const content = {
         s1P2T: "2. Agrupación por Sectores", s1P2D: "Identifica sesgos usando regiones francesas y ritmos del crupier.",
         s2Title: "Herramientas de Inteligencia VIP", s2Desc: "Capas de datos visuales que reveal tendencias profundas.",
         s2P1T: "Matriz de Frecuencia de Dígito Final", s2P1D: "Rastrea probabilidad de transición. Ej: Si sale 13 (Final 3), la fila 3 muestra posibles finales.",
-        s2P2T: "Mapa de Calor del Sector", s2P2D: "Visualiza sectores Voisins, Orphelins y Tiers en el historial.",
+        s2P2T: "Mapa de Calor del Sector", s2P2D: "Visualiza sectores Top series, Orphelins y Small series en el historial.",
         s3Title: "Estrategia de Ejecución", btn: "Inicializar Sistema"
     },
     ko: {
@@ -121,7 +121,7 @@ const content = {
         s1P2T: "2. 섹터 클러스터링", s1P2D: "프랑스 구역과 딜러 리듬을 사용하여 휠 바이어스를 식별합니다.",
         s2Title: "VIP 인텔리전스 도구", s2Desc: "심층 트렌드를 드러내는 시각적 데이터 레이어.",
         s2P1T: "끝수 빈도 매트릭스", s2P1D: "전환 확률을 추적합니다. 예: 13(끝수 3) 적중 시, 3번 행이 다음 가능성 있는 끝수를 표시.",
-        s2P2T: "섹터 로드맵 (히트맵)", s2P2D: "히스토리에서 Voisins, Orphelins, Tiers 섹터를 시각화합니다.",
+        s2P2T: "섹터 로드맵 (히트맵)", s2P2D: "히스토리에서 Top series, Orphelins, Small series 섹터를 시각화합니다.",
         s3Title: "실행 전략", btn: "시스템 초기화"
     },
     vi: {
@@ -138,7 +138,7 @@ const content = {
         s1P2T: "2. Phân Cụm Bánh Xe", s1P2D: "Xác định thiên vị bánh xe qua phân vùng Pháp và nhịp độ người quay.",
         s2Title: "Công Cụ Tình Báo VIP", s2Desc: "Các lớp dữ liệu trực quan tiết lộ xu hướng chuyên sâu.",
         s2P1T: "Ma Trận Tần Suất Số Cuối", s2P1D: "Theo dõi xác suất chuyển tiếp. VD: Nếu trúng 13 (Số cuối 3), hàng 3 hiển thị các số cuối có khả năng tiếp theo.",
-        s2P2T: "Sơ Đồ Nhiệt Phân Vùng", s2P2D: "Trực quan hóa phân bố Voisins, Orphelins và Tiers qua lịch sử.",
+        s2P2T: "Sơ Đồ Nhiệt Phân Vùng", s2P2D: "Trực quan hóa phân bố Top series, Orphelins và Small series qua lịch sử.",
         s3Title: "Chiến Lược Thực Thi", btn: "Khởi Tạo Hệ Thống"
     }
 };

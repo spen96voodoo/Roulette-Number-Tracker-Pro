@@ -79,12 +79,12 @@ const areaDefs: { id: RoadmapArea; icon: string; name: Record<Language, string>;
       vi: 'Sơ Đồ Luồng Phân Vùng Pháp',
     },
     sub: {
-      en: 'Voisins, Orphelins, Tiers & Zero Spiel spatial heat distribution',
-      zh: '零区、孤注、三区与零角区的空间分布热图',
-      ja: 'Voisins、Orphelins、Tiers、0-Spielの空間ヒートマップ',
-      es: 'Distribución espacial de sectores franceses y Voisins',
-      ko: 'Voisins, Orphelins, Tiers, 0-Spiel 공간 분포',
-      vi: 'Phân bố nhiệt không gian Voisins, Orphelins, Tiers & Zero Spiel',
+      en: 'Top series, Orphelins, Small series & Zero Spiel spatial heat distribution',
+      zh: 'Top series、孤注、Small series与零角区的空间分布热图',
+      ja: 'Top series、Orphelins、Small series、0-Spielの空間ヒートマップ',
+      es: 'Distribución espacial de sectores franceses y Top series',
+      ko: 'Top series, Orphelins, Small series, 0-Spiel 공간 분포',
+      vi: 'Phân bố nhiệt không gian Top series, Orphelins, Small series & Zero Spiel',
     },
   },
   {
