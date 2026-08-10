@@ -2,7 +2,7 @@
 export type RouletteColor = 'red' | 'black' | 'green';
 export type Language = 'en' | 'zh' | 'ja' | 'es' | 'ko' | 'vi';
 export type FunctionTab = 'cylinder' | 'distance' | 'dozens' | 'stats' | 'series' | 'matrix' | 'patterns';
-export type PageType = 'main' | 'functions' | 'roadmap' | 'setup';
+export type PageType = 'main' | 'functions' | 'roadmap' | 'setup' | 'dashboard';
 
 export interface ToastData {
   id: number;

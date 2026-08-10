@@ -5,6 +5,7 @@ import { BettingChart } from './components/BettingChart';
 import { ToastContainer } from './components/Toast';
 import { AreaRoadmapPage } from './components/AreaRoadmapPage';
 import { SetupPage } from './components/SetupPage';
+import { DashboardPage } from './components/DashboardPage';
 import { FunctionsPage, FunctionTab } from './components/FunctionsPage';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import type { ToastData, SeriesType, ComplexPrediction, RouletteColor, Language, PageType, FiveCriteriaDepths, SectorSplitMode } from './types';
@@ -31,7 +32,7 @@ export interface HitStatus {
 const translations = {
     en: {
         title: "Roulette Tracker Pro All in one", strategy: "Closed Numbers", history: "History", alerts: "Alerts", undo: "Undo", clear: "Clear",
-        roadmap: "Roadmap", functions: "Functions", setup: "Set Up", pl: "P/L", bet: "Unit", waiting: "Waiting for spin...", analyzing: "Analyzing...", empty: "Empty",
+        roadmap: "Roadmap", functions: "Functions", setup: "Set Up", dashboard: "Dashboard", pl: "P/L", bet: "Unit", waiting: "Waiting for spin...", analyzing: "Analyzing...", empty: "Empty",
         clearTitle: "Clear Records", clearMsg: "This will clear all history. Continue?", confirmBtn: "Yes, Clear", cancelBtn: "Cancel", color: "Color", final: "Final",
         series: "Series", topNums: "Top Numbers", hit: "HIT!", voisins: "Top series", orphelins: "Orphelins", tiers: "Small series",
         restoreTitle: "Restore Session", restoreMsg: "Previous session data found. Restore it?", restoreBtn: "Restore", newSessionBtn: "New Session",
@@ -434,6 +435,17 @@ const App: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => switchPage('dashboard')}
+              className={`py-1.5 px-2 rounded-lg transition-all flex items-center justify-center space-x-1 text-xs font-black uppercase active:scale-95 ${
+                currentPage === 'dashboard' ? 'bg-gold text-black shadow-md font-extrabold' : 'text-emerald-400 hover:bg-zinc-800/80'
+              }`}
+            >
+              <span>📊</span>
+              <span className="truncate">Dashboard</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => switchPage('setup')}
               className={`py-1.5 px-2 rounded-lg transition-all flex items-center justify-center space-x-1 text-xs font-black uppercase active:scale-95 ${
                 currentPage === 'setup' ? 'bg-gold text-black shadow-md font-extrabold' : 'text-gray-400 hover:bg-zinc-800/80 hover:text-white'
@@ -470,13 +482,22 @@ const App: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => switchPage('functions')}
-                        className="px-3 py-1.5 rounded-xl bg-gold text-black font-black text-xs hover:bg-yellow-400 transition-all active:scale-95 shadow-md flex items-center gap-1"
-                      >
-                        <span>Open Hub</span>
-                        <span>→</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => switchPage('dashboard')}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 font-black text-xs transition-all active:scale-95 flex items-center gap-1"
+                        >
+                          <span>📊</span>
+                          <span>Dashboard</span>
+                        </button>
+                        <button
+                          onClick={() => switchPage('functions')}
+                          className="px-3 py-1.5 rounded-xl bg-gold text-black font-black text-xs hover:bg-yellow-400 transition-all active:scale-95 shadow-md flex items-center gap-1"
+                        >
+                          <span>Open Hub</span>
+                          <span>→</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
@@ -617,6 +638,7 @@ const App: React.FC = () => {
                     onRemoveLastSpin={handleRemoveLastSpin}
                     onClearSession={handleClearSession}
                     onBack={() => switchPage('main')}
+                    onOpenDashboard={() => switchPage('dashboard')}
                     prediction={prediction}
                     lang={lang}
                     initialTab={activeFunctionTab}
@@ -635,7 +657,16 @@ const App: React.FC = () => {
                     lang={lang}
                 />
             </div>
-
+            ) : currentPage === 'dashboard' ? (
+            <div className="animate-slide-up">
+                <DashboardPage
+                    spinHistory={spinHistory}
+                    onBack={() => switchPage('main')}
+                    lang={lang}
+                    fiveDepths={fiveDepths}
+                    sectorSplitMode={sectorSplitMode}
+                />
+            </div>
             ) : (
             <div className="animate-slide-up">
                 <SetupPage 

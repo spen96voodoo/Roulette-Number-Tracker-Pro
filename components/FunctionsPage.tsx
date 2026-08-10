@@ -19,6 +19,7 @@ interface FunctionsPageProps {
   onRemoveLastSpin: () => void;
   onClearSession: () => void;
   onBack: () => void;
+  onOpenDashboard?: () => void;
   prediction: ComplexPrediction | null;
   lang: Language;
   colorLookback?: number;
@@ -287,6 +288,7 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
   onRemoveLastSpin,
   onClearSession,
   onBack,
+  onOpenDashboard,
   prediction,
   lang,
   colorLookback,
@@ -393,6 +395,15 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenDashboard && (
+            <button
+              onClick={onOpenDashboard}
+              className="px-3 py-1.5 rounded-xl bg-gold text-black hover:bg-yellow-400 font-black text-xs transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+            >
+              <span>📊</span>
+              <span>Dashboard</span>
+            </button>
+          )}
           <button
             onClick={() => setShowQuickGrid(!showQuickGrid)}
             className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 border active:scale-95 ${

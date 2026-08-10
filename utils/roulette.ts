@@ -120,7 +120,7 @@ export const getMultiCriteriaPrediction = (
         likelyColor = (Object.keys(colorCounts) as RouletteColor[]).sort((a,b) => colorCounts[b] - colorCounts[a])[0] || 'red';
     }
 
-    // 2. FINAL DIGIT PREDICTION (using ALL spin numbers in history)
+    // 2. FINAL DIGIT PREDICTION (only final digits with 2 or more occurrences/transitions)
     const lastFinal = lastNumber % 10;
     const fTransitions: Map<number, number> = new Map();
     for (let i = 0; i < history.length - 1; i++) {
@@ -130,6 +130,7 @@ export const getMultiCriteriaPrediction = (
         }
     }
     const finalDigits = Array.from(fTransitions.entries())
+        .filter(e => e[1] >= 2)
         .sort((a,b) => b[1] - a[1])
         .slice(0, 3)
         .map(e => e[0]);
@@ -139,6 +140,7 @@ export const getMultiCriteriaPrediction = (
         const finalCounts: Map<number, number> = new Map();
         allFinals.forEach(f => finalCounts.set(f, (finalCounts.get(f) || 0) + 1));
         const topFinals = Array.from(finalCounts.entries())
+            .filter(e => e[1] >= 2)
             .sort((a,b) => b[1] - a[1])
             .slice(0, 2)
             .map(e => e[0]);

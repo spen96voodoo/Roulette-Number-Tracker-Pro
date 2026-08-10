@@ -427,10 +427,22 @@ export const RouletteWheelTracker: React.FC<RouletteWheelTrackerProps> = ({
 
       const d = `M ${x1_in} ${y1_in} L ${x1_out} ${y1_out} A ${rOut} ${rOut} 0 ${largeArcFlag} 1 ${x2_out} ${y2_out} L ${x2_in} ${y2_in} A ${rIn} ${rIn} 0 ${largeArcFlag} 0 ${x1_in} ${y1_in} Z`;
 
+      let midAngle = (startAngle + endAngle) / 2;
+      if (endAngle < startAngle) {
+        midAngle = (startAngle + endAngle + 2 * Math.PI) / 2;
+      }
+      const beaconRadius = radiusOuter + 22;
+      const beaconX = center.x + beaconRadius * Math.cos(midAngle);
+      const beaconY = center.y + beaconRadius * Math.sin(midAngle);
+
       return {
         id: sec.id,
+        sec,
         path: d,
         color: sec.fillHex,
+        midAngle,
+        beaconX,
+        beaconY,
       };
     });
   }, [sectors, center.x, center.y, radiusInner, radiusOuter]);
@@ -600,18 +612,52 @@ export const RouletteWheelTracker: React.FC<RouletteWheelTrackerProps> = ({
             {sectorArcPaths.map((arc) => {
               const isSelected = selectedSectorId === arc.id;
               const isDimmed = selectedSectorId !== null && !isSelected;
+              const topSectorPickId = nextSectorPrediction?.topPick?.sector?.id || (nextSectorPrediction?.breakdown?.[0]?.sector?.id) || sectors[0]?.id;
+              const isTopPick = topSectorPickId === arc.id;
+
               return (
-                <path
-                  key={`arc-${arc.id}`}
-                  d={arc.path}
-                  fill={arc.color}
-                  fillOpacity={isSelected ? 0.35 : isDimmed ? 0.05 : 0.15}
-                  stroke={arc.color}
-                  strokeWidth={isSelected ? 2 : 1}
-                  strokeOpacity={isDimmed ? 0.1 : 0.4}
-                  className="transition-all duration-300 cursor-pointer"
-                  onClick={() => setSelectedSectorId(selectedSectorId === arc.id ? null : arc.id)}
-                />
+                <g key={`arc-group-${arc.id}`}>
+                  <path
+                    d={arc.path}
+                    fill={arc.color}
+                    fillOpacity={isSelected ? 0.35 : isDimmed ? 0.05 : isTopPick ? 0.3 : 0.15}
+                    stroke={isTopPick ? '#FFD700' : arc.color}
+                    strokeWidth={isSelected ? 3 : isTopPick ? 3 : 1}
+                    strokeOpacity={isDimmed ? 0.1 : isTopPick ? 0.9 : 0.4}
+                    className={`transition-all duration-300 cursor-pointer ${isTopPick ? 'animate-sector-flash' : ''}`}
+                    onClick={() => setSelectedSectorId(selectedSectorId === arc.id ? null : arc.id)}
+                  />
+
+                  {/* Flashlight Spotlight & Searchlight Beacon for Next Top Sector Pick */}
+                  {isTopPick && (
+                    <g className="pointer-events-none">
+                      {/* Beam ray towards sector center */}
+                      <line
+                        x1={arc.beaconX}
+                        y1={arc.beaconY}
+                        x2={center.x + (radiusInner + 5) * Math.cos(arc.midAngle)}
+                        y2={center.y + (radiusInner + 5) * Math.sin(arc.midAngle)}
+                        stroke="#FFD700"
+                        strokeWidth="3"
+                        strokeDasharray="4,2"
+                        className="animate-pulse"
+                      />
+                      {/* Flashing Flashlight Beacon */}
+                      <circle cx={arc.beaconX} cy={arc.beaconY} r="18" fill="#FFD700" fillOpacity="0.25" className="animate-ping" />
+                      <circle cx={arc.beaconX} cy={arc.beaconY} r="13" fill="#09090b" stroke="#FFD700" strokeWidth="2" />
+                      <text x={arc.beaconX} y={arc.beaconY + 4} textAnchor="middle" fontSize="12">
+                        🔦
+                      </text>
+                      {/* Flash Badge Label */}
+                      <g transform={`translate(${arc.beaconX}, ${arc.beaconY + 20})`}>
+                        <rect x="-38" y="-9" width="76" height="18" rx="9" fill="#FFD700" stroke="#000" strokeWidth="1.5" />
+                        <text x="0" y="3" textAnchor="middle" fill="#000" fontSize="9" fontWeight="900" letterSpacing="0.5">
+                          ⚡ NEXT TOP HIT
+                        </text>
+                      </g>
+                    </g>
+                  )}
+                </g>
               );
             })}
 
@@ -736,6 +782,10 @@ export const RouletteWheelTracker: React.FC<RouletteWheelTrackerProps> = ({
           <div className="flex items-center gap-1">
             <span className="w-4 h-0.5 bg-gold inline-block" />
             <span>Vector Line</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold/10 border border-gold/40 text-gold font-black text-[10px] animate-pulse">
+            <span>🔦</span>
+            <span>Flashlight Top Sector Hit: <strong className="text-white">{sectors.find(s => s.id === (nextSectorPrediction?.topPick?.sector?.id || nextSectorPrediction?.breakdown?.[0]?.sector?.id || sectors[0]?.id))?.name || 'Top Pick'}</strong></span>
           </div>
         </div>
       </div>
