@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import type { Language, FiveCriteriaDepths, SectorSplitMode } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { Language, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from '../types';
 import { getNeighbours, getSeriesType, getMultiCriteriaPrediction } from '../utils/roulette';
 import { NUMBER_COLORS, EUROPEAN_WHEEL_ORDER } from '../constants';
 
@@ -9,6 +9,8 @@ interface DashboardPageProps {
   lang: Language;
   fiveDepths?: FiveCriteriaDepths;
   sectorSplitMode?: SectorSplitMode;
+  strategyConfig: StrategyConfig;
+  onUpdateStrategyConfig?: (newConfig: StrategyConfig) => void;
 }
 
 const dashLabels = {
@@ -272,13 +274,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   lang,
   fiveDepths = { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 },
   sectorSplitMode = '9',
+  strategyConfig,
+  onUpdateStrategyConfig,
 }) => {
   const t = dashLabels[lang] || dashLabels.en;
 
-  // State for Closed Numbers backtest controls inside Section 1
-  const [closedLookback, setClosedLookback] = useState<number>(8);
-  const [neighbourDepth, setNeighbourDepth] = useState<3 | 5>(3);
-  const [betStrategyMode, setBetStrategyMode] = useState<'111' | '123' | '235'>('235');
+  // Use strategyConfig directly for controls
+  const closedLookback = strategyConfig.closedLookback || 8;
+  const neighbourDepth = strategyConfig.closedNeighbourDepth || 3;
+  const betStrategyMode = strategyConfig.closedProgression || '235';
+
+  const updatePartial = (partial: Partial<StrategyConfig>) => {
+    if (onUpdateStrategyConfig) {
+      onUpdateStrategyConfig({ ...strategyConfig, ...partial });
+    }
+  };
 
   // Helper for Closed Numbers calculation at a given history step
   const calculateClosedBets = (history: number[], mode: '111' | '123' | '235', depth: 3 | 5, lookback: number) => {
@@ -338,7 +348,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
 
     const hitRatio = gamesPredicted > 0 ? (gamesHit / gamesPredicted) * 100 : 0;
-    // Expected basic return ratio: N3 covers ~7 numbers (18.92%), N5 covers ~11 numbers (29.73%)
     const basicReturnRatio = neighbourDepth === 5 ? 29.73 : 18.92;
     const netPL = totalUnitsReturned - totalUnitsBet;
     const roi = totalUnitsBet > 0 ? (netPL / totalUnitsBet) * 100 : 0;
@@ -366,12 +375,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     let topOffered = 0, topWins = 0;
     let dozensOffered = 0, dozensWins = 0;
 
-    // Minimum 5 spins needed for 5-criteria predictions
-    if (spinHistory.length >= 5) {
-      for (let i = 5; i < spinHistory.length; i++) {
+    const activeSectorMode = strategyConfig.vectorSectorAmount || sectorSplitMode;
+
+    if (spinHistory.length >= 2) {
+      for (let i = 1; i < spinHistory.length; i++) {
         const hist = spinHistory.slice(0, i);
         const winner = spinHistory[i];
-        const pred = getMultiCriteriaPrediction(hist, fiveDepths, sectorSplitMode);
+        const pred = getMultiCriteriaPrediction(hist, fiveDepths, activeSectorMode);
         if (!pred) continue;
 
         // 2) Colour
@@ -413,10 +423,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         // 8) Dozens & Columns Strategic Signal
         if (winner !== 0) {
           dozensOffered++;
-          // Evaluate Dozen signal (1st 1-12, 2nd 13-24, 3rd 25-36)
           const winningDozen = winner <= 12 ? 1 : winner <= 24 ? 2 : 3;
           const winningCol = winner % 3 === 1 ? 1 : winner % 3 === 2 ? 2 : 3;
-          // Pred consensus for dozen uses top number matches or series orientation
           const topDozen = pred.topNumbers[0] ? (pred.topNumbers[0].num <= 12 ? 1 : pred.topNumbers[0].num <= 24 ? 2 : 3) : 1;
           const topCol = pred.topNumbers[0] ? (pred.topNumbers[0].num % 3 === 1 ? 1 : pred.topNumbers[0].num % 3 === 2 ? 2 : 3) : 1;
           if (winningDozen === topDozen || winningCol === topCol) {
@@ -429,27 +437,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const calcHit = (wins: number, total: number) => total > 0 ? Math.round((wins / total) * 1000) / 10 : 0;
 
     const colorRate = calcHit(colorWins, colorOffered);
-    const colorBaseline = 48.65; // 18/37
+    const colorBaseline = 48.65;
 
     const seriesRate = calcHit(seriesWins, seriesOffered);
-    const seriesBaseline = 32.43; // Tiers 12/37 = 32.43%
+    const seriesBaseline = 32.43;
 
     const sectorRate = calcHit(sectorWins, sectorOffered);
-    // Sector baseline depends on split mode
-    const numSectors = parseInt(sectorSplitMode) || 9;
+    const numSectors = parseInt(activeSectorMode) || 9;
     const sectorBaseline = Math.round((100 / numSectors) * 10) / 10;
 
     const finalRate = calcHit(finalWins, finalOffered);
-    const finalBaseline = 21.62; // 2 final digits predicted out of 10 endings = ~21.62%
+    const finalBaseline = Math.round((strategyConfig.finalDigitsCount / 10) * 1000) / 10;
 
     const pocketRate = calcHit(pocketWins, pocketOffered);
-    const pocketBaseline = 16.22; // 3 steps out of 18 displacement steps = 16.22%
+    const pocketBaseline = Math.round(((strategyConfig.pocketTopRanks * 2) / 37) * 1000) / 10;
 
     const topRate = calcHit(topWins, topOffered);
-    const topBaseline = 8.11; // Top 3 numbers = 3/37 = 8.11%
+    const topBaseline = 8.11;
 
     const dozensRate = calcHit(dozensWins, dozensOffered);
-    const dozensBaseline = 32.43; // 1 Dozen / Column = 12/37 = 32.43%
+    const dozensBaseline = 64.86; // Double Dozen / Col = 24/37 = 64.86%
 
     return {
       color: { offered: colorOffered, wins: colorWins, rate: colorRate, baseline: colorBaseline, isAbove: colorRate >= colorBaseline },
@@ -460,12 +467,58 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       top: { offered: topOffered, wins: topWins, rate: topRate, baseline: topBaseline, isAbove: topRate >= topBaseline },
       dozens: { offered: dozensOffered, wins: dozensWins, rate: dozensRate, baseline: dozensBaseline, isAbove: dozensRate >= dozensBaseline },
     };
-  }, [spinHistory, fiveDepths, sectorSplitMode]);
+  }, [spinHistory, fiveDepths, sectorSplitMode, strategyConfig]);
 
-  // Overall Consensus Hit Ratio
-  const totalEngineOffered = engineStats.color.offered + engineStats.series.offered + engineStats.sector.offered + engineStats.final.offered + engineStats.pocket.offered + engineStats.top.offered + engineStats.dozens.offered;
-  const totalEngineWins = engineStats.color.wins + engineStats.series.wins + engineStats.sector.wins + engineStats.final.wins + engineStats.pocket.wins + engineStats.top.wins + engineStats.dozens.wins;
-  const overallEngineRate = totalEngineOffered > 0 ? Math.round((totalEngineWins / totalEngineOffered) * 1000) / 10 : 0;
+  // Combined Results Math Across All Active Strategy Predictions
+  const combinedStats = useMemo(() => {
+    const closedBet = closedStats.totalUnitsBet;
+    const closedReturn = closedStats.totalUnitsReturned;
+
+    const colorBet = engineStats.color.offered * 1;
+    const colorReturn = engineStats.color.wins * 2; // 2:1 payout
+
+    const seriesBet = engineStats.series.offered * 12;
+    const seriesReturn = engineStats.series.wins * 36;
+
+    const activeSectorMode = strategyConfig.vectorSectorAmount || sectorSplitMode;
+    const sectorUnits = Math.round(37 / (parseInt(activeSectorMode) || 9));
+    const sectorBet = engineStats.sector.offered * sectorUnits;
+    const sectorReturn = engineStats.sector.wins * 36;
+
+    const finalUnits = (strategyConfig.finalDigitsCount || 3) * 3;
+    const finalBet = engineStats.final.offered * finalUnits;
+    const finalReturn = engineStats.final.wins * 36;
+
+    const pocketUnits = (strategyConfig.pocketTopRanks || 3) * 2;
+    const pocketBet = engineStats.pocket.offered * pocketUnits;
+    const pocketReturn = engineStats.pocket.wins * 36;
+
+    const topBet = engineStats.top.offered * 3;
+    const topReturn = engineStats.top.wins * 36;
+
+    // Dozens & Columns: 3:1 payout (pays 3 units return on a 2 unit double-dozen/col bet)
+    const dozensBet = engineStats.dozens.offered * 2;
+    const dozensReturn = engineStats.dozens.wins * 3;
+
+    const totalBet = closedBet + colorBet + seriesBet + sectorBet + finalBet + pocketBet + topBet + dozensBet;
+    const totalReturn = closedReturn + colorReturn + seriesReturn + sectorReturn + finalReturn + pocketReturn + topReturn + dozensReturn;
+    const netResultPoints = totalReturn - totalBet;
+    const combinedROI = totalBet > 0 ? (netResultPoints / totalBet) * 100 : 0;
+
+    const totalOffered = closedStats.gamesPredicted + engineStats.color.offered + engineStats.series.offered + engineStats.sector.offered + engineStats.final.offered + engineStats.pocket.offered + engineStats.top.offered + engineStats.dozens.offered;
+    const totalWins = closedStats.gamesHit + engineStats.color.wins + engineStats.series.wins + engineStats.sector.wins + engineStats.final.wins + engineStats.pocket.wins + engineStats.top.wins + engineStats.dozens.wins;
+    const combinedAccuracy = totalOffered > 0 ? Math.round((totalWins / totalOffered) * 1000) / 10 : 0;
+
+    return {
+      totalBet,
+      totalReturn,
+      netResultPoints,
+      combinedROI: Math.round(combinedROI * 10) / 10,
+      totalWins,
+      totalOffered,
+      combinedAccuracy,
+    };
+  }, [closedStats, engineStats, sectorSplitMode, strategyConfig]);
 
   return (
     <div className="animate-fade-in pb-16 space-y-4">
@@ -500,7 +553,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       )}
 
-      {/* General Summary Overview Stats Bar */}
+      {/* Combined Overview Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-md">
           <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">{t.spinsInput}</span>
@@ -509,20 +562,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-md">
           <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">{t.roundsPredicted}</span>
-          <div className="text-xl font-black text-gold mt-1">{Math.max(0, spinHistory.length - 5)} <span className="text-xs text-gray-500 font-normal">rounds</span></div>
+          <div className="text-xl font-black text-gold mt-1">{Math.max(0, spinHistory.length - 1)} <span className="text-xs text-gray-500 font-normal">rounds</span></div>
         </div>
 
         <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-md">
-          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">{t.overallAccuracy}</span>
-          <div className={`text-xl font-black mt-1 ${overallEngineRate >= 30 ? 'text-green-500' : 'text-red-500'}`}>
-            {overallEngineRate}%
+          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">Combined Accuracy</span>
+          <div className={`text-xl font-black mt-1 ${combinedStats.combinedAccuracy >= 30 ? 'text-green-500' : 'text-red-500'}`}>
+            {combinedStats.combinedAccuracy}%
           </div>
         </div>
 
         <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-md">
-          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">{t.netReturnUnits}</span>
-          <div className={`text-xl font-black mt-1 ${closedStats.netPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {closedStats.netPL >= 0 ? `+${closedStats.netPL}` : closedStats.netPL} <span className="text-xs text-gray-400">pts</span>
+          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">Result Point (ROI)</span>
+          <div className={`text-xl font-black mt-1 ${combinedStats.netResultPoints >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {combinedStats.netResultPoints >= 0 ? `+${combinedStats.netResultPoints}` : combinedStats.netResultPoints} <span className="text-xs font-bold text-gray-400">({combinedStats.combinedROI >= 0 ? `+${combinedStats.combinedROI}%` : `${combinedStats.combinedROI}%`})</span>
           </div>
         </div>
       </div>
@@ -546,7 +599,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               {[3, 5, 8, 10, 12].map(cnt => (
                 <button
                   key={cnt}
-                  onClick={() => setClosedLookback(cnt)}
+                  onClick={() => updatePartial({ closedLookback: cnt })}
                   className={`px-2 py-0.5 text-[9px] font-black rounded-lg transition-all ${
                     closedLookback === cnt ? 'bg-gold text-black shadow-xs' : 'text-gray-400 hover:text-white'
                   }`}
@@ -559,13 +612,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             {/* Neighbour Depth N3 / N5 */}
             <div className="flex bg-zinc-800 rounded-xl p-1 border border-gray-700/60">
               <button
-                onClick={() => setNeighbourDepth(3)}
+                onClick={() => updatePartial({ closedNeighbourDepth: 3 })}
                 className={`px-2 py-0.5 text-[9px] font-black rounded-lg ${neighbourDepth === 3 ? 'bg-gold text-black' : 'text-gray-400'}`}
               >
                 N3 (7#)
               </button>
               <button
-                onClick={() => setNeighbourDepth(5)}
+                onClick={() => updatePartial({ closedNeighbourDepth: 5 })}
                 className={`px-2 py-0.5 text-[9px] font-black rounded-lg ${neighbourDepth === 5 ? 'bg-gold text-black' : 'text-gray-400'}`}
               >
                 N5 (11#)
@@ -577,7 +630,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               {(['111', '123', '235'] as const).map(m => (
                 <button
                   key={m}
-                  onClick={() => setBetStrategyMode(m)}
+                  onClick={() => updatePartial({ closedProgression: m })}
                   className={`px-2 py-0.5 text-[9px] font-black rounded-lg transition-all ${
                     betStrategyMode === m
                       ? m === '235' ? 'bg-green-600 text-white' : m === '123' ? 'bg-yellow-500 text-black' : 'bg-blue-600 text-white'
@@ -648,6 +701,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={1}
+          payoutMultiplier={2}
+          unitLabel="Red/Black"
         />
 
         {/* 3) Series Prediction */}
@@ -664,6 +720,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={12}
+          payoutMultiplier={36}
+          unitLabel="12/37 Series Track"
         />
 
         {/* 4) Wheel Vector / Sector Prediction */}
@@ -680,6 +739,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={Math.round(37 / (parseInt(sectorSplitMode) || 9))}
+          payoutMultiplier={36}
+          unitLabel={`${sectorSplitMode}S Sector`}
         />
 
         {/* 5) Final Matrix Prediction */}
@@ -696,6 +758,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={(strategyConfig.finalDigitsCount || 3) * 3}
+          payoutMultiplier={36}
+          unitLabel={`${strategyConfig.finalDigitsCount || 3} Digits (${(strategyConfig.finalDigitsCount || 3) * 3}#)`}
         />
 
         {/* 6) Pockets Distance Step Prediction */}
@@ -712,6 +777,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={(strategyConfig.pocketTopRanks || 3) * 2}
+          payoutMultiplier={36}
+          unitLabel={`${strategyConfig.pocketTopRanks || 3} Steps (${(strategyConfig.pocketTopRanks || 3) * 2}#)`}
         />
 
         {/* 7) Top Core Recommended Numbers */}
@@ -728,6 +796,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={3}
+          payoutMultiplier={36}
+          unitLabel="Top 3 Core (3#)"
         />
 
         {/* 8) Dozens & Columns Strategic Signals */}
@@ -744,6 +815,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           statusBelow={t.statusBelow}
           baselineLabel={t.baseline}
           actualLabel={t.actual}
+          targetUnits={2}
+          payoutMultiplier={3}
+          unitLabel="Double Dozen/Col (3:1)"
         />
       </div>
     </div>
@@ -763,6 +837,9 @@ interface StatCriterionCardProps {
   statusBelow: string;
   baselineLabel: string;
   actualLabel: string;
+  targetUnits: number;
+  payoutMultiplier: number;
+  unitLabel: string;
 }
 
 const StatCriterionCard: React.FC<StatCriterionCardProps> = ({
@@ -776,19 +853,26 @@ const StatCriterionCard: React.FC<StatCriterionCardProps> = ({
   isAbove,
   statusAbove,
   statusBelow,
-  baselineLabel,
-  actualLabel,
+  targetUnits,
+  payoutMultiplier,
+  unitLabel,
 }) => {
+  const totalBetUnits = offered * targetUnits;
+  const totalReturnUnits = wins * payoutMultiplier;
+  const netUnits = totalReturnUnits - totalBetUnits;
+  const roi = totalBetUnits > 0 ? ((netUnits / totalBetUnits) * 100).toFixed(1) : '0.0';
+  const roiNum = parseFloat(roi);
+
   return (
-    <div className="bg-zinc-900 p-4 rounded-3xl border border-gray-800 shadow-xl space-y-2 flex flex-col justify-between">
+    <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-lg space-y-2 flex flex-col justify-between">
       <div>
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-base">{icon}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">{icon}</span>
             <h3 className="text-xs font-black text-white uppercase tracking-wider">{title}</h3>
           </div>
           <span
-            className={`px-2 py-0.5 text-[8px] font-black rounded-lg border uppercase tracking-wider shrink-0 ${
+            className={`px-2 py-0.5 text-[8px] font-black rounded-md border uppercase tracking-wider shrink-0 ${
               isAbove
                 ? 'bg-green-500/20 text-green-400 border-green-500/40'
                 : 'bg-red-500/20 text-red-400 border-red-500/40'
@@ -797,27 +881,33 @@ const StatCriterionCard: React.FC<StatCriterionCardProps> = ({
             {isAbove ? statusAbove : statusBelow}
           </span>
         </div>
-        <p className="text-[10px] text-gray-400 font-medium mt-1">{description}</p>
+        <p className="text-[9px] text-gray-400 font-medium mt-0.5 line-clamp-1">{description}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-800/80">
-        <div className="bg-zinc-800/60 p-2.5 rounded-2xl border border-gray-700/40">
-          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{actualLabel}</span>
-          <div className={`text-xl font-black mt-0.5 ${isAbove ? 'text-green-500' : 'text-red-500'}`}>
-            {rate}%
-          </div>
-          <div className="text-[9px] font-bold text-gray-400 mt-0.5">
-            Hits: <strong className="text-white">{wins}</strong> / {offered} rounds
-          </div>
+      {/* Compact Metrics Strip */}
+      <div className="bg-zinc-950/80 p-2 rounded-xl border border-gray-800/80 space-y-1.5">
+        <div className="flex items-center justify-between text-[10px] font-black">
+          <span className="text-gray-400">Targets: <strong className="text-gold">{targetUnits}#</strong> <span className="text-gray-500 font-normal">({unitLabel})</span></span>
+          <span className="text-gray-400">Payout: <strong className="text-amber-300">{payoutMultiplier}:1</strong></span>
         </div>
 
-        <div className="bg-zinc-800/60 p-2.5 rounded-2xl border border-gray-700/40">
-          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{baselineLabel}</span>
-          <div className="text-xl font-black text-gray-300 mt-0.5">
-            {baseline}%
+        <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-800/60 text-[10px]">
+          <div className="bg-zinc-900/90 p-1.5 rounded-lg border border-gray-800 flex items-center justify-between">
+            <span className="text-[9px] font-bold text-gray-400">Hit Rate</span>
+            <div className="text-right">
+              <span className={`font-black ${isAbove ? 'text-green-400' : 'text-red-400'}`}>{rate}%</span>
+              <span className="text-[8px] text-gray-500 block">vs {baseline}% base</span>
+            </div>
           </div>
-          <div className="text-[9px] font-bold text-gray-500 mt-0.5">
-            Theoretical return
+
+          <div className="bg-zinc-900/90 p-1.5 rounded-lg border border-gray-800 flex items-center justify-between">
+            <span className="text-[9px] font-bold text-gray-400">Est. ROI</span>
+            <div className="text-right">
+              <span className={`font-black ${roiNum >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {roiNum >= 0 ? `+${roi}%` : `${roi}%`}
+              </span>
+              <span className="text-[8px] text-gray-500 block">{wins}/{offered} Hits</span>
+            </div>
           </div>
         </div>
       </div>

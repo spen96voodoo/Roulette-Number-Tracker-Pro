@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ComplexPrediction, Language, SectorSplitMode } from '../types';
+import type { ComplexPrediction, Language, SectorSplitMode, StrategyConfig } from '../types';
 import type { HitStatus } from '../App';
 import { NUMBER_COLORS } from '../constants';
 import { getSeriesType } from '../utils/roulette';
@@ -132,6 +132,8 @@ interface MultiCriteriaPredictionCardProps {
   lastHitStatus?: HitStatus | null;
   isPro?: boolean;
   onActivated?: () => void;
+  strategyConfig?: StrategyConfig;
+  onUpdateStrategyConfig?: (newConfig: StrategyConfig) => void;
 }
 
 export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardProps> = ({
@@ -144,6 +146,8 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
   lastHitStatus,
   isPro = true,
   onActivated = () => {},
+  strategyConfig,
+  onUpdateStrategyConfig,
 }) => {
   const t = labels[lang] || labels['en'];
 
@@ -198,7 +202,11 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
   const isColorHit = isLastSpinValid && (lastHitStatus?.color ?? (lastPrediction?.color !== null && lastPrediction?.color === NUMBER_COLORS[lastSpin]));
   const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (lastPrediction?.finalDigits.includes(lastSpin % 10) ?? false));
   const isSeriesHit = isLastSpinValid && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series === getSeriesType(lastSpin)));
-  const isSectorHit = isLastSpinValid && (lastHitStatus?.sector ?? (lastPrediction?.sector?.numbers?.includes(lastSpin) ?? false));
+  const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
+  const activeSectorsInLast = lastPrediction?.sector?.topSectors
+    ? lastPrediction.sector.topSectors.slice(0, topSectorsCount)
+    : lastPrediction?.sector?.numbers ? [{ numbers: lastPrediction.sector.numbers }] : [];
+  const isSectorHit = isLastSpinValid && (lastHitStatus?.sector ?? activeSectorsInLast.some(sec => sec.numbers.includes(lastSpin)));
   const isPocketHit = isLastSpinValid && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
 
   const hasAnyHit = isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit;
@@ -436,35 +444,173 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
         </div>
 
         {/* Dynamic Sector Prediction */}
-        <div className="p-1.5 sm:p-2 rounded-lg border bg-zinc-900/90 border-gray-800 space-y-1 transition-all">
-          <div className="flex items-center justify-between text-[9px] font-black uppercase">
+        <div className="p-1.5 sm:p-2 rounded-lg border bg-zinc-900/90 border-gray-800 space-y-2 transition-all">
+          <div className="flex flex-wrap items-center justify-between text-[9px] font-black uppercase gap-1">
             <span className="flex items-center gap-1 text-gray-400">
-              <span>🎯</span> {t.sector} ({sectorSplitMode}S)
+              <span>🎡</span> {t.sector} ({sectorSplitMode}S)
             </span>
-            <span className="text-amber-300 font-extrabold">
-              {sector ? sector.predictedSectorName : '?'}
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Ranking Mode Toggle: Next Probable vs History Top vs Both */}
+              <div className="flex items-center bg-zinc-950 p-0.5 rounded border border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onUpdateStrategyConfig && strategyConfig) {
+                      onUpdateStrategyConfig({ ...strategyConfig, vectorRankingMode: 'next_probable' });
+                    }
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[8px] font-black transition-all flex items-center gap-1 ${
+                    (strategyConfig?.vectorRankingMode || 'next_probable') === 'next_probable'
+                      ? 'bg-amber-400 text-black shadow-xs font-extrabold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Rank sectors by Next Probable Transition"
+                >
+                  <span>🎯</span>
+                  <span>Top Next</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onUpdateStrategyConfig && strategyConfig) {
+                      onUpdateStrategyConfig({ ...strategyConfig, vectorRankingMode: 'history_frequency' });
+                    }
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[8px] font-black transition-all flex items-center gap-1 ${
+                    strategyConfig?.vectorRankingMode === 'history_frequency'
+                      ? 'bg-orange-500 text-white shadow-xs font-extrabold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Rank sectors by Top Section of History"
+                >
+                  <span>🔥</span>
+                  <span>Top History</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onUpdateStrategyConfig && strategyConfig) {
+                      onUpdateStrategyConfig({ ...strategyConfig, vectorRankingMode: 'both' });
+                    }
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[8px] font-black transition-all flex items-center gap-1 ${
+                    strategyConfig?.vectorRankingMode === 'both'
+                      ? 'bg-purple-500 text-white shadow-xs font-extrabold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Include Both Top Next & Top History Sectors"
+                >
+                  <span>⚡</span>
+                  <span>Both</span>
+                </button>
+              </div>
+
+              {/* Quick Top 1/2/3 Sector Pick Count Selector */}
+              <div className="flex items-center gap-0.5 bg-zinc-950 p-0.5 rounded border border-gray-800">
+                <span className="text-[7px] text-gray-500 font-bold px-0.5">Pick:</span>
+                {([1, 2, 3] as const).map(cnt => (
+                  <button
+                    key={cnt}
+                    type="button"
+                    onClick={() => {
+                      if (onUpdateStrategyConfig && strategyConfig) {
+                        onUpdateStrategyConfig({ ...strategyConfig, vectorTopSectorsCount: cnt });
+                      }
+                    }}
+                    className={`px-1.5 py-0.2 rounded text-[8px] font-black transition-all ${
+                      (strategyConfig?.vectorTopSectorsCount || 1) === cnt
+                        ? 'bg-gold text-black shadow-xs font-extrabold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {cnt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Mode Indicator Banner */}
+          <div className="flex items-center justify-between text-[8px] font-black px-1.5 py-0.5 rounded bg-zinc-950/80 border border-gray-800/60">
+            <span className="text-gray-400 flex items-center gap-1">
+              {strategyConfig?.vectorRankingMode === 'history_frequency' ? (
+                <span className="text-orange-400">🔥 Mode: Top History Frequency</span>
+              ) : strategyConfig?.vectorRankingMode === 'both' ? (
+                <span className="text-purple-300">⚡ Mode: Both Next & History</span>
+              ) : (
+                <span className="text-amber-300">🎯 Mode: Top Next Probable</span>
+              )}
+            </span>
+            <span className="text-gray-500 text-[7px]">
+              {strategyConfig?.vectorTopSectorsCount || 1} Sector{(strategyConfig?.vectorTopSectorsCount || 1) > 1 ? 's' : ''} Active
             </span>
           </div>
 
-          {sector && sector.numbers && sector.numbers.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-0.5 pt-0.5">
-              {sector.numbers.map((n) => {
-                const nColor = NUMBER_COLORS[n];
-                const bgClass =
-                  nColor === 'red'
-                    ? 'bg-roulette-red text-white'
-                    : nColor === 'black'
-                    ? 'bg-roulette-black text-white border border-gray-700'
-                    : 'bg-roulette-green text-white';
-                return (
-                  <span
-                    key={n}
-                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shadow-xs ${bgClass}`}
-                  >
-                    {n}
-                  </span>
-                );
-              })}
+          {sector && sector.topSectors && sector.topSectors.length > 0 ? (
+            <div className="space-y-1.5 pt-0.5">
+              {sector.topSectors.slice(0, strategyConfig?.vectorTopSectorsCount || 1).map((secItem, idx) => (
+                <div key={secItem.id || idx} className="bg-zinc-950 p-1.5 rounded-md border border-gray-800/80 space-y-1">
+                  <div className="flex items-center justify-between text-[8px] font-black">
+                    <span className="text-amber-300 flex items-center gap-1">
+                      <span className={`px-1 py-0.2 rounded text-[7px] border font-black ${
+                        strategyConfig?.vectorRankingMode === 'history_frequency'
+                          ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      }`}>
+                        #{idx + 1} {strategyConfig?.vectorRankingMode === 'history_frequency' ? 'History' : 'Next'}
+                      </span>
+                      <span>{secItem.name}</span>
+                    </span>
+                    <span className="text-gray-500 text-[7px]">{secItem.numbers.length} #s</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-0.5">
+                    {secItem.numbers.map((n) => {
+                      const nColor = NUMBER_COLORS[n];
+                      const bgClass =
+                        nColor === 'red'
+                          ? 'bg-roulette-red text-white'
+                          : nColor === 'black'
+                          ? 'bg-roulette-black text-white border border-gray-700'
+                          : 'bg-roulette-green text-white';
+                      return (
+                        <span
+                          key={n}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black shadow-xs ${bgClass}`}
+                        >
+                          {n}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : sector && sector.numbers && sector.numbers.length > 0 ? (
+            <div className="bg-zinc-950 p-1.5 rounded-md border border-gray-800/80 space-y-1">
+              <div className="flex items-center justify-between text-[8px] font-black text-amber-300">
+                <span>#1 {sector.predictedSectorName}</span>
+                <span className="text-gray-500 text-[7px]">{sector.numbers.length} #s</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-0.5">
+                {sector.numbers.map((n) => {
+                  const nColor = NUMBER_COLORS[n];
+                  const bgClass =
+                    nColor === 'red'
+                      ? 'bg-roulette-red text-white'
+                      : nColor === 'black'
+                      ? 'bg-roulette-black text-white border border-gray-700'
+                      : 'bg-roulette-green text-white';
+                  return (
+                    <span
+                      key={n}
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black shadow-xs ${bgClass}`}
+                    >
+                      {n}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <span className="text-[9px] font-bold text-gray-500">?</span>

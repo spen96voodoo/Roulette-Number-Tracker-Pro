@@ -11,7 +11,7 @@ import { VipActivationCard } from './VipActivationCard';
 import type { Language, ComplexPrediction, Pattern, GappedPattern, SectorSplitMode } from '../types';
 import { NUMBER_COLORS, RED_NUMBERS, BLACK_NUMBERS } from '../constants';
 
-export type FunctionTab = 'cylinder' | 'distance' | 'dozens' | 'stats' | 'series' | 'matrix' | 'patterns';
+export type FunctionTab = 'cylinder' | 'distance' | 'dozens' | 'stats' | 'series' | 'matrix' | 'patterns' | 'strategy';
 
 interface FunctionsPageProps {
   spinHistory: number[];
@@ -20,6 +20,7 @@ interface FunctionsPageProps {
   onClearSession: () => void;
   onBack: () => void;
   onOpenDashboard?: () => void;
+  onOpenStrategy?: () => void;
   prediction: ComplexPrediction | null;
   lang: Language;
   colorLookback?: number;
@@ -289,6 +290,7 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
   onClearSession,
   onBack,
   onOpenDashboard,
+  onOpenStrategy,
   prediction,
   lang,
   colorLookback,
@@ -307,6 +309,10 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
   const vipLockedTabs: FunctionTab[] = ['cylinder', 'distance', 'series', 'matrix'];
 
   const handleTabClick = (tabId: FunctionTab) => {
+    if (tabId === 'strategy') {
+      onOpenStrategy?.();
+      return;
+    }
     if (!isPro && vipLockedTabs.includes(tabId)) {
       setToastMsg('请输入有效激活码解锁');
       setTimeout(() => setToastMsg(null), 3000);
@@ -372,6 +378,7 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
     { id: 'series', label: t.tabs.series, icon: '🧭' },
     { id: 'matrix', label: t.tabs.matrix, icon: '🔢' },
     { id: 'patterns', label: t.tabs.patterns, icon: '⚡' },
+    { id: 'strategy', label: 'Strategy', icon: '⚙️' },
   ];
 
   return (
@@ -395,6 +402,15 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenStrategy && (
+            <button
+              onClick={onOpenStrategy}
+              className="px-3 py-1.5 rounded-xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/30 font-black text-xs transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <span>⚙️</span>
+              <span>Strategy</span>
+            </button>
+          )}
           {onOpenDashboard && (
             <button
               onClick={onOpenDashboard}
@@ -470,12 +486,15 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
       <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 pt-0.5">
         {tabList.map(tab => {
           const isLocked = !isPro && vipLockedTabs.includes(tab.id);
+          const isStrategyTab = tab.id === 'strategy';
           return (
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all border active:scale-95 ${
-                activeTab === tab.id
+                isStrategyTab
+                  ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/20 text-gold border-gold hover:bg-amber-500/40 shadow-sm'
+                  : activeTab === tab.id
                   ? 'bg-gold text-black border-gold shadow-md'
                   : 'bg-zinc-900 text-gray-300 border-gray-800 hover:bg-zinc-800 hover:border-gold/30'
               }`}

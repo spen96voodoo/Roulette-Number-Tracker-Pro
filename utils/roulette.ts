@@ -1,6 +1,6 @@
 
 import { VOISINS_SERIES, ORPHELINS_SERIES, TIERS_SERIES, EUROPEAN_WHEEL_ORDER, NUMBER_COLORS, ROULETTE_NUMBERS, WHEEL_SECTORS } from '../constants';
-import type { SeriesType, RouletteColor, ComplexPrediction, FiveCriteriaDepths, SectorSplitMode } from '../types';
+import type { SeriesType, RouletteColor, ComplexPrediction, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from '../types';
 
 export const getSeriesType = (num: number): SeriesType => {
     if (VOISINS_SERIES.includes(num)) return 'Top';
@@ -83,7 +83,8 @@ export const getNeighbours = (num: number, depth: number = 1): number[] => {
 export const getMultiCriteriaPrediction = (
     history: number[],
     depths: FiveCriteriaDepths = { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 },
-    sectorSplitMode: SectorSplitMode = '9'
+    sectorSplitMode: SectorSplitMode = '9',
+    strategyConfig?: StrategyConfig
 ): ComplexPrediction | null => {
     if (history.length < 3) return null;
 
@@ -213,6 +214,8 @@ export const getMultiCriteriaPrediction = (
         }
     }
 
+    const rankingMode = strategyConfig?.vectorRankingMode || 'next_probable';
+
     // Calculate composite score for each active sector
     const sectorScores = activeSectors.map(sec => {
         const destTransitions = destinationCounts.get(sec.id) || 0;
@@ -220,11 +223,14 @@ export const getMultiCriteriaPrediction = (
         const totalHits = totalSectorHits.get(sec.id) || 0;
         const isClosed = closedSectorIds.has(sec.id);
 
-        const score = (destTransitions * 100) + (seqTransitions * 50) + (totalHits * 10) + (isClosed ? 15 : 0);
+        const nextScore = (destTransitions * 100) + (seqTransitions * 50) + (isClosed ? 20 : 0) + totalHits;
+        const historyScore = (totalHits * 100) + (destTransitions * 10) + (seqTransitions * 5);
 
         return {
             sector: sec,
-            score,
+            nextScore,
+            historyScore,
+            score: rankingMode === 'history_frequency' ? historyScore : nextScore,
             destTransitions,
             seqTransitions,
             totalHits,
@@ -232,9 +238,46 @@ export const getMultiCriteriaPrediction = (
         };
     });
 
-    sectorScores.sort((a, b) => b.score - a.score);
-    const topScored = sectorScores[0];
+    const nextScores = [...sectorScores].sort((a, b) => b.nextScore - a.nextScore);
+    const historyScores = [...sectorScores].sort((a, b) => b.historyScore - a.historyScore);
+
+    const topNextSectors = nextScores.slice(0, 3).map(s => ({
+        id: s.sector.id,
+        name: s.sector.name,
+        numbers: s.sector.numbers,
+        score: s.nextScore,
+    }));
+
+    const topHistorySectors = historyScores.slice(0, 3).map(s => ({
+        id: s.sector.id,
+        name: s.sector.name,
+        numbers: s.sector.numbers,
+        score: s.historyScore,
+    }));
+
+    const activeScores = rankingMode === 'history_frequency'
+        ? historyScores
+        : rankingMode === 'both'
+        ? (() => {
+            const topCount = strategyConfig?.vectorTopSectorsCount || 1;
+            const nextTop = nextScores.slice(0, topCount);
+            const histTop = historyScores.slice(0, topCount);
+            const combined = [...nextTop, ...histTop];
+            const uniqueCombined = Array.from(new Set(combined.map(s => s.sector.id)))
+                .map(id => combined.find(s => s.sector.id === id)!);
+            return uniqueCombined;
+          })()
+        : nextScores;
+
+    const topScored = activeScores[0];
     const likelySector = topScored?.sector || activeSectors[0];
+
+    const topSectors = activeScores.slice(0, 3).map(s => ({
+        id: s.sector.id,
+        name: s.sector.name,
+        numbers: s.sector.numbers,
+        score: s.score,
+    }));
 
     // Dynamic sector confidence based on destination transition strength
     const sectorConfidence = Math.min(98, Math.max(65, 70 + (topScored?.destTransitions || 0) * 8 + (topScored?.isClosed ? 5 : 0)));
@@ -431,6 +474,10 @@ export const getMultiCriteriaPrediction = (
             numbers: likelySector.numbers,
             confidence: sectorConfidence,
             depthUsed: sectorsDepth,
+            topSectors,
+            topNextSectors,
+            topHistorySectors,
+            rankingMode,
         },
         pocket: {
             predictedDistance: topDisp,
@@ -442,5 +489,314 @@ export const getMultiCriteriaPrediction = (
         },
         depthsUsed: depths,
     };
+};
+
+export interface StrategyNumberBreakdown {
+  num: number;
+  totalUnits: number;
+  parts: { name: string; units: number; icon: string }[];
+}
+
+export const calculateStrategyBets = (
+  history: number[],
+  config: StrategyConfig,
+  sectorSplitMode: SectorSplitMode = '9'
+): Map<number, number> => {
+  const breakdownMap = calculateStrategyBreakdowns(history, config, sectorSplitMode);
+  const bettingMap = new Map<number, number>();
+  breakdownMap.forEach((item, num) => {
+    if (item.totalUnits > 0) {
+      bettingMap.set(num, item.totalUnits);
+    }
+  });
+  return bettingMap;
+};
+
+export const calculateStrategyBreakdowns = (
+  history: number[],
+  config: StrategyConfig,
+  sectorSplitMode: SectorSplitMode = '9'
+): Map<number, StrategyNumberBreakdown> => {
+  const breakdownMap = new Map<number, StrategyNumberBreakdown>();
+
+  const getOrCreate = (n: number): StrategyNumberBreakdown => {
+    if (!breakdownMap.has(n)) {
+      breakdownMap.set(n, { num: n, totalUnits: 0, parts: [] });
+    }
+    return breakdownMap.get(n)!;
+  };
+
+  const addPartUnits = (num: number, name: string, units: number, icon: string) => {
+    if (units <= 0) return;
+    const item = getOrCreate(num);
+    const existing = item.parts.find(p => p.name === name);
+    if (existing) {
+      existing.units += units;
+    } else {
+      item.parts.push({ name, units, icon });
+    }
+    item.totalUnits += units;
+  };
+
+  if (history.length === 0) return breakdownMap;
+
+  const lastSpin = history[history.length - 1];
+
+  const defaultDepths: FiveCriteriaDepths = { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 };
+  const effectiveSectorSplit = config.vectorSectorAmount || sectorSplitMode;
+  const pred = getMultiCriteriaPrediction(history, defaultDepths, effectiveSectorSplit, config);
+
+  // PART 1: CLOSED NUMBERS
+  if (config.closedEnabled && history.length > 0) {
+    const recentHistory = history.slice(-config.closedLookback);
+    const uniqueHistoryByRecency = [...new Set([...recentHistory].reverse())];
+    const candidatePool: number[] = [];
+    uniqueHistoryByRecency.forEach(num => {
+      if (num !== -1) {
+        candidatePool.push(...getNeighbours(num, config.closedNeighbourDepth === 5 ? 2 : 1));
+      }
+    });
+    const finalCandidates = [...new Set(candidatePool)].filter(n => n !== -1);
+
+    if (config.closedProgression === '111') {
+      finalCandidates.forEach(c => addPartUnits(c, 'Closed Numbers', 1, '📍'));
+    } else {
+      const units = config.closedProgression === '235' ? [5, 3, 2] : [3, 2, 1];
+      finalCandidates.forEach((candidate, idx) => {
+        let u = units[2];
+        if (idx < 4) u = units[0];
+        else if (idx < 10) u = units[1];
+        addPartUnits(candidate, 'Closed Numbers', u, '📍');
+      });
+    }
+  }
+
+  // PART 2: WHEEL VECTOR
+  if (config.vectorEnabled && history.length >= 2 && pred?.sector) {
+    const topCount = config.vectorTopSectorsCount || 1;
+    let targetSectors: { id: string | number; name: string; numbers: number[] }[] = [];
+
+    if (config.vectorRankingMode === 'both') {
+      const nextSecs = (pred.sector.topNextSectors || []).slice(0, topCount);
+      const histSecs = (pred.sector.topHistorySectors || []).slice(0, topCount);
+      const mergedMap = new Map<string | number, { id: string | number; name: string; numbers: number[] }>();
+      nextSecs.forEach(s => mergedMap.set(s.id, s));
+      histSecs.forEach(s => mergedMap.set(s.id, s));
+      targetSectors = Array.from(mergedMap.values());
+    } else if (config.vectorRankingMode === 'history_frequency') {
+      targetSectors = (pred.sector.topHistorySectors || []).slice(0, topCount);
+    } else {
+      targetSectors = (pred.sector.topNextSectors || []).slice(0, topCount);
+    }
+
+    targetSectors.forEach(sec => {
+      sec.numbers.forEach(num => {
+        addPartUnits(num, 'Wheel Sector', 1, '🎯');
+      });
+    });
+  }
+
+  // PART 3: POCKET DISTANCE
+  if (config.pocketEnabled && history.length >= 2 && pred?.pocket?.topSteps) {
+    const pocketTargetsAdded = new Set<number>();
+    const topRanks = config.pocketTopRanks || 3;
+    const stepsToUse = pred.pocket.topSteps.slice(0, topRanks);
+
+    stepsToUse.forEach(s => {
+      pocketTargetsAdded.add(s.cwTarget);
+      pocketTargetsAdded.add(s.acwTarget);
+    });
+
+    if (config.pocketNextChanceEnabled) {
+      pocketTargetsAdded.add(pred.pocket.cwTarget);
+      pocketTargetsAdded.add(pred.pocket.acwTarget);
+    }
+
+    pocketTargetsAdded.forEach(tNum => {
+      addPartUnits(tNum, 'Pocket Distance', 2, '🧭');
+    });
+  }
+
+  // PART 4: FINAL MATRIX
+  if (config.finalEnabled && history.length >= 2 && pred?.finalDigits) {
+    const count = config.finalDigitsCount || 3;
+    const chosenFinals = pred.finalDigits.slice(0, count);
+
+    ROULETTE_NUMBERS.forEach(n => {
+      if (chosenFinals.includes(n % 10)) {
+        addPartUnits(n, 'Final Matrix', 1, '🔢');
+      }
+    });
+  }
+
+  // PART 5: DOZENS, COLS, COLOUR & SERIES SIGNALS ARE RENDERED AS DOWNSIDE INDICATORS (NOT IN INDIVIDUAL NUMBERS)
+
+  // PART 6: PATTERN INTELLIGENCE
+  if (config.patternNextNumEnabled && history.length >= 2) {
+    const nextNums = new Map<number, number>();
+    for (let i = 0; i < history.length - 1; i++) {
+      if (history[i] === lastSpin) {
+        const nextN = history[i + 1];
+        nextNums.set(nextN, (nextNums.get(nextN) || 0) + 1);
+      }
+    }
+    nextNums.forEach((count, num) => {
+      if (count >= 1) {
+        addPartUnits(num, 'Pattern Intelligence', 1, '⚡');
+      }
+    });
+  }
+
+  if (config.patternMatchSequenceEnabled && history.length >= 3) {
+    const last2 = history.slice(-2);
+    const seqNextNums = new Map<number, number>();
+    for (let i = 0; i < history.length - 2; i++) {
+      if (history[i] === last2[0] && history[i + 1] === last2[1]) {
+        const nextN = history[i + 2];
+        seqNextNums.set(nextN, (seqNextNums.get(nextN) || 0) + 1);
+      }
+    }
+    seqNextNums.forEach((count, num) => {
+      addPartUnits(num, 'Pattern Intelligence', 1, '⚡');
+    });
+  }
+
+  return breakdownMap;
+};
+
+export interface StrategySummarySignalItem {
+  type: 'dozen' | 'col' | 'color' | 'series';
+  label: string;
+  value: string;
+  badgeClass: string;
+}
+
+export const calculateStrategySignals = (
+  history: number[],
+  config: StrategyConfig
+): StrategySummarySignalItem[] => {
+  const signals: StrategySummarySignalItem[] = [];
+  if (history.length < 1) return signals;
+
+  // 1. DOZENS
+  if (config.dozensEnabled) {
+    const dozensCount = [0, 0, 0];
+    const last15 = history.slice(-15);
+    last15.forEach(n => {
+      if (n >= 1 && n <= 12) dozensCount[0]++;
+      else if (n >= 13 && n <= 24) dozensCount[1]++;
+      else if (n >= 25 && n <= 36) dozensCount[2]++;
+    });
+
+    let sleepD1 = -1, sleepD2 = -1, sleepD3 = -1;
+    for (let i = history.length - 1; i >= 0; i--) {
+      const n = history[i];
+      if (sleepD1 === -1 && n >= 1 && n <= 12) sleepD1 = history.length - 1 - i;
+      if (sleepD2 === -1 && n >= 13 && n <= 24) sleepD2 = history.length - 1 - i;
+      if (sleepD3 === -1 && n >= 25 && n <= 36) sleepD3 = history.length - 1 - i;
+    }
+
+    const dozensArr = [
+      { id: '1st Dozen (1-12)', count: dozensCount[0], sleep: sleepD1 >= 0 ? sleepD1 : 99 },
+      { id: '2nd Dozen (13-24)', count: dozensCount[1], sleep: sleepD2 >= 0 ? sleepD2 : 99 },
+      { id: '3rd Dozen (25-36)', count: dozensCount[2], sleep: sleepD3 >= 0 ? sleepD3 : 99 },
+    ];
+    const sortedDozensHits = [...dozensArr].sort((a,b) => b.count - a.count);
+    const dozenStr = `${sortedDozensHits[0].id.split(' ')[0]} + ${sortedDozensHits[1].id.split(' ')[0]} (3:2 Return)`;
+
+    signals.push({
+      type: 'dozen',
+      label: 'DOZEN SIGNAL',
+      value: dozenStr,
+      badgeClass: 'bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-xs font-black',
+    });
+  }
+
+  // 2. COLUMNS
+  if (config.colsEnabled) {
+    const colsCount = [0, 0, 0];
+    const last15 = history.slice(-15);
+    last15.forEach(n => {
+      if (n > 0) {
+        if (n % 3 === 1) colsCount[0]++;
+        else if (n % 3 === 2) colsCount[1]++;
+        else if (n % 3 === 0) colsCount[2]++;
+      }
+    });
+
+    let sleepC1 = -1, sleepC2 = -1, sleepC3 = -1;
+    for (let i = history.length - 1; i >= 0; i--) {
+      const n = history[i];
+      if (sleepC1 === -1 && n > 0 && n % 3 === 1) sleepC1 = history.length - 1 - i;
+      if (sleepC2 === -1 && n > 0 && n % 3 === 2) sleepC2 = history.length - 1 - i;
+      if (sleepC3 === -1 && n > 0 && n % 3 === 0) sleepC3 = history.length - 1 - i;
+    }
+
+    const colsArr = [
+      { id: 'Col 1', count: colsCount[0], sleep: sleepC1 >= 0 ? sleepC1 : 99 },
+      { id: 'Col 2', count: colsCount[1], sleep: sleepC2 >= 0 ? sleepC2 : 99 },
+      { id: 'Col 3', count: colsCount[2], sleep: sleepC3 >= 0 ? sleepC3 : 99 },
+    ];
+    const sortedColsHits = [...colsArr].sort((a,b) => b.count - a.count);
+    const colStr = `${sortedColsHits[0].id} + ${sortedColsHits[1].id} (3:2 Return)`;
+
+    signals.push({
+      type: 'col',
+      label: 'COLUMN SIGNAL',
+      value: colStr,
+      badgeClass: 'bg-blue-500/25 text-blue-300 border-blue-500/50 shadow-xs font-black',
+    });
+  }
+
+  // 2. COLOUR
+  if (config.colorEnabled) {
+    const recentColors = history.slice(-10).map(n => NUMBER_COLORS[n]);
+    const redCount = recentColors.filter(c => c === 'red').length;
+    const blackCount = recentColors.filter(c => c === 'black').length;
+    const isRed = redCount >= blackCount;
+
+    signals.push({
+      type: 'color',
+      label: 'COLOUR',
+      value: isRed ? 'RED 🔴' : 'BLACK ⬛',
+      badgeClass: isRed
+        ? 'bg-red-500/20 text-red-400 border-red-500/40'
+        : 'bg-zinc-800 text-gray-200 border-zinc-600',
+    });
+  }
+
+  // 3. SERIES
+  if (config.seriesEnabled) {
+    const seriesHistory = history.map(getSeriesType);
+    const lastNum = history[history.length - 1];
+    const sTransitions: Map<SeriesType, number> = new Map();
+    const sLook = Math.min(5, seriesHistory.length - 1);
+    if (sLook > 0) {
+      const targetSlice = seriesHistory.slice(-sLook);
+      for (let i = 0; i <= seriesHistory.length - 1 - sLook; i++) {
+        const slice = seriesHistory.slice(i, i + sLook);
+        if (slice.every((s, idx) => s === targetSlice[idx])) {
+          const nextS = seriesHistory[i + sLook];
+          if (nextS && nextS !== 'none') {
+            sTransitions.set(nextS, (sTransitions.get(nextS) || 0) + 1);
+          }
+        }
+      }
+    }
+    const likelySeries: SeriesType = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNum) || 'Top';
+
+    let seriesText = 'Voisins (Top) 🎯';
+    if (likelySeries === 'Small') seriesText = 'Tiers (Small) 🥖';
+    else if (likelySeries === 'Middle') seriesText = 'Orphelins (Middle) ⚡';
+
+    signals.push({
+      type: 'series',
+      label: 'SERIES',
+      value: seriesText,
+      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+    });
+  }
+
+  return signals;
 };
 

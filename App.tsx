@@ -6,10 +6,12 @@ import { ToastContainer } from './components/Toast';
 import { AreaRoadmapPage } from './components/AreaRoadmapPage';
 import { SetupPage } from './components/SetupPage';
 import { DashboardPage } from './components/DashboardPage';
+import { StrategyPage } from './components/StrategyPage';
 import { FunctionsPage, FunctionTab } from './components/FunctionsPage';
 import { ConfirmationModal } from './components/ConfirmationModal';
-import type { ToastData, SeriesType, ComplexPrediction, RouletteColor, Language, PageType, FiveCriteriaDepths, SectorSplitMode } from './types';
-import { getNeighbours, getSeriesType, getMultiCriteriaPrediction } from './utils/roulette';
+import type { ToastData, SeriesType, ComplexPrediction, RouletteColor, Language, PageType, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from './types';
+import { DEFAULT_STRATEGY_CONFIG } from './types';
+import { getNeighbours, getSeriesType, getMultiCriteriaPrediction, calculateStrategyBets, calculateStrategySignals, calculateStrategyBreakdowns } from './utils/roulette';
 import { PredictionDisplay } from './components/PredictionDisplay';
 import { MultiCriteriaPredictionCard } from './components/MultiCriteriaPredictionCard';
 import { NUMBER_COLORS, ROULETTE_NUMBERS, EUROPEAN_WHEEL_ORDER } from './constants';
@@ -226,7 +228,15 @@ const App: React.FC = () => {
     };
   });
 
-  const [sectorSplitMode, setSectorSplitMode] = useState<SectorSplitMode>('9');
+  const [sectorSplitMode, setSectorSplitMode] = useState<SectorSplitMode>(() => initialSession?.sectorSplitMode || '9');
+
+  const handleSectorSplitChange = useCallback((mode: SectorSplitMode) => {
+    setSectorSplitMode(mode);
+    setStrategyConfig(prev => ({
+      ...prev,
+      vectorSectorAmount: mode,
+    }));
+  }, []);
 
   const lastInputTime = useRef<number>(0);
   const [isStrategyEnabled, setIsStrategyEnabled] = useState<boolean>(() => initialSession?.strategyEnabled ?? true);
@@ -235,6 +245,28 @@ const App: React.FC = () => {
   const [betStrategyMode, setBetStrategyMode] = useState<'235' | '123' | '111'>(() => initialSession?.strategyMode || '235');
   const [neighbourDepth, setNeighbourDepth] = useState<3 | 5>(() => initialSession?.depth || 3);
   const [closedLookback, setClosedLookback] = useState<number>(() => initialSession?.closedLookback || 8);
+
+  const [strategyConfig, setStrategyConfig] = useState<StrategyConfig>(() => {
+    if (initialSession?.strategyConfig) {
+      return initialSession.strategyConfig;
+    }
+    return {
+      ...DEFAULT_STRATEGY_CONFIG,
+      closedLookback: initialSession?.closedLookback || 8,
+      closedNeighbourDepth: (initialSession?.depth === 5 ? 5 : 3),
+      closedProgression: initialSession?.strategyMode || '235',
+    };
+  });
+
+  const handleUpdateStrategyConfig = useCallback((newConfig: StrategyConfig) => {
+    setStrategyConfig(newConfig);
+    setClosedLookback(newConfig.closedLookback);
+    setNeighbourDepth(newConfig.closedNeighbourDepth);
+    setBetStrategyMode(newConfig.closedProgression);
+    if (newConfig.vectorSectorAmount) {
+      setSectorSplitMode(newConfig.vectorSectorAmount);
+    }
+  }, []);
 
   const safeSetStorage = (key: string, value: string): void => {
     try {
@@ -278,61 +310,41 @@ const App: React.FC = () => {
       depth: neighbourDepth, 
       closedLookback: closedLookback,
       strategyEnabled: isStrategyEnabled, 
+      strategyConfig: strategyConfig,
       theme: theme, 
       lang: lang, 
       fiveDepths 
     };
     safeSetStorage(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
-  }, [spinHistory, alerts, unitMultiplier, betStrategyMode, neighbourDepth, closedLookback, isStrategyEnabled, theme, lang, fiveDepths]);
+  }, [spinHistory, alerts, unitMultiplier, betStrategyMode, neighbourDepth, closedLookback, isStrategyEnabled, strategyConfig, theme, lang, fiveDepths]);
 
 
-  const calculateBets = useCallback((history: number[], mode: '235' | '123' | '111', depth: 3 | 5, lookbackCount: number = 5): Map<number, number> => {
-    const newBettingMap = new Map<number, number>();
-    const recentHistory = history.slice(-lookbackCount);
-    const uniqueHistoryByRecency = [...new Set([...recentHistory].reverse())];
-    if (uniqueHistoryByRecency.length < 1) return newBettingMap;
-    const masterCandidatePool: number[] = [];
-    uniqueHistoryByRecency.forEach(num => { 
-      if (num !== -1) { 
-        masterCandidatePool.push(...getNeighbours(num, depth === 5 ? 2 : 1)); 
-      } 
-    });
-    const finalCandidates = [...new Set(masterCandidatePool)].filter(n => n !== -1);
-    if (mode === '111') { 
-      finalCandidates.forEach(candidate => newBettingMap.set(candidate, 1)); 
-      return newBettingMap; 
-    }
-    const units = mode === '235' ? [5, 3, 2] : [3, 2, 1];
-    finalCandidates.forEach((candidate, idx) => {
-      if (idx < 4) {
-        newBettingMap.set(candidate, units[0]);
-      } else if (idx < 10) {
-        newBettingMap.set(candidate, units[1]);
-      } else {
-        newBettingMap.set(candidate, units[2]);
-      }
-    });
-    return newBettingMap;
-  }, []);
+  const calculateBets = useCallback((history: number[], config: StrategyConfig, mode: SectorSplitMode): Map<number, number> => {
+    if (!isStrategyEnabled) return new Map();
+    return calculateStrategyBets(history, config, mode);
+  }, [isStrategyEnabled]);
 
   useEffect(() => { 
-    if (spinHistory.length > 0) setBettingMap(calculateBets(spinHistory, betStrategyMode, neighbourDepth, closedLookback)); 
+    if (spinHistory.length > 0) setBettingMap(calculateBets(spinHistory, strategyConfig, sectorSplitMode)); 
     else setBettingMap(new Map()); 
-  }, [spinHistory, betStrategyMode, neighbourDepth, closedLookback, calculateBets]);
+  }, [spinHistory, strategyConfig, sectorSplitMode, calculateBets]);
 
   const totalBaseBetUnits = useMemo(() => { let total = 0; for (const unit of bettingMap.values()) total += unit; return total; }, [bettingMap]);
+
+  const strategySignals = useMemo(() => calculateStrategySignals(spinHistory, strategyConfig), [spinHistory, strategyConfig]);
+  const strategyBreakdownMap = useMemo(() => calculateStrategyBreakdowns(spinHistory, strategyConfig, sectorSplitMode), [spinHistory, strategyConfig, sectorSplitMode]);
 
   useEffect(() => {
     if (!isStrategyEnabled) { setBalance(0); return; }
     let cumulative = 0;
     for (let i = 1; i < spinHistory.length; i++) {
         const h = spinHistory.slice(0, i); const winner = spinHistory[i];
-        const bets = calculateBets(h, betStrategyMode, neighbourDepth, closedLookback);
+        const bets = calculateBets(h, strategyConfig, sectorSplitMode);
         const total = (Array.from(bets.values()) as number[]).reduce((sum, val) => sum + val, 0);
         if (total > 0) { const winUnit = bets.get(winner) || 0; cumulative += winUnit > 0 ? (winUnit * 36) - total : -total; }
     }
     setBalance(cumulative * unitMultiplier);
-  }, [spinHistory, calculateBets, isStrategyEnabled, unitMultiplier, betStrategyMode, neighbourDepth, closedLookback]);
+  }, [spinHistory, calculateBets, isStrategyEnabled, unitMultiplier, strategyConfig, sectorSplitMode]);
 
   useEffect(() => { 
     document.documentElement.classList.add('dark');
@@ -347,8 +359,8 @@ const App: React.FC = () => {
   }, [alertsEnabled]);
 
   const prediction = useMemo<ComplexPrediction | null>(
-    () => getMultiCriteriaPrediction(spinHistory, fiveDepths, sectorSplitMode),
-    [spinHistory, fiveDepths, sectorSplitMode]
+    () => getMultiCriteriaPrediction(spinHistory, fiveDepths, sectorSplitMode, strategyConfig),
+    [spinHistory, fiveDepths, sectorSplitMode, strategyConfig]
   );
 
   const handleAddSpin = useCallback((num: number) => {
@@ -376,7 +388,23 @@ const App: React.FC = () => {
 
   const handleRemoveLastSpin = useCallback(() => { if (spinHistory.length === 0) return; triggerHaptic('light'); setSpinHistory(prev => prev.slice(0, -1)); setLastHitStatus(null); setLastPrediction(null); }, [spinHistory]);
   const handleRemoveAlert = (id: number) => { triggerHaptic('light'); setAlerts(current => current.filter(alert => alert.id !== id)); };
-  const handleClearSession = () => { triggerHaptic('error'); setSpinHistory([]); setAlerts([]); setLastHitStatus(null); setLastPrediction(null); localStorage.removeItem(SESSION_STORAGE_KEY); setShowClearConfirmation(false); };
+  const handleClearSession = () => { 
+    triggerHaptic('error'); 
+    setSpinHistory([]); 
+    setAlerts([]); 
+    setLastHitStatus(null); 
+    setLastPrediction(null); 
+    setStrategyConfig(DEFAULT_STRATEGY_CONFIG);
+    setSectorSplitMode('9');
+    setFiveDepths({ colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 });
+    setUnitMultiplier(1);
+    setUnitMultiplierInput('1');
+    setClosedLookback(8);
+    setNeighbourDepth(3);
+    setBetStrategyMode('235');
+    safeRemoveStorage(SESSION_STORAGE_KEY); 
+    setShowClearConfirmation(false); 
+  };
   const switchPage = (page: PageType) => { triggerHaptic('light'); setCurrentPage(page); };
 
   return (
@@ -446,6 +474,17 @@ const App: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => switchPage('strategy')}
+              className={`py-1.5 px-2 rounded-lg transition-all flex items-center justify-center space-x-1 text-xs font-black uppercase active:scale-95 ${
+                currentPage === 'strategy' ? 'bg-gold text-black shadow-md font-extrabold' : 'text-yellow-400 hover:bg-zinc-800/80'
+              }`}
+            >
+              <span>⚙️</span>
+              <span className="truncate">Strategy</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => switchPage('setup')}
               className={`py-1.5 px-2 rounded-lg transition-all flex items-center justify-center space-x-1 text-xs font-black uppercase active:scale-95 ${
                 currentPage === 'setup' ? 'bg-gold text-black shadow-md font-extrabold' : 'text-gray-400 hover:bg-zinc-800/80 hover:text-white'
@@ -509,83 +548,67 @@ const App: React.FC = () => {
                         { id: 'series', label: '🧭 Series Heat', desc: 'Top series/Small series' },
                         { id: 'matrix', label: '🔢 Final Matrix', desc: '0-9 Endings' },
                         { id: 'patterns', label: '⚡ Pattern Alerts', desc: 'Sequences' },
-                      ].map(f => (
-                        <button
-                          key={f.id}
-                          onClick={() => {
-                            setActiveFunctionTab(f.id as FunctionTab);
-                            switchPage('functions');
-                          }}
-                          className="bg-zinc-800/90 hover:bg-zinc-700/80 p-2 rounded-xl border border-gray-700/60 text-left transition-all active:scale-95 group shadow-sm"
-                        >
-                          <div className="text-xs font-black text-white group-hover:text-gold transition-colors">{f.label}</div>
-                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">{f.desc}</div>
-                        </button>
-                      ))}
+                        { id: 'strategy', label: '⚙️ Strategy', desc: 'Engines & Customizer' },
+                      ].map(f => {
+                        const isStrategy = f.id === 'strategy';
+                        return (
+                          <button
+                            key={f.id}
+                            onClick={() => {
+                              if (isStrategy) {
+                                switchPage('strategy');
+                              } else {
+                                setActiveFunctionTab(f.id as FunctionTab);
+                                switchPage('functions');
+                              }
+                            }}
+                            className={
+                              isStrategy
+                                ? "bg-gradient-to-br from-amber-500/25 via-yellow-600/20 to-zinc-900 hover:from-amber-500/40 p-2 rounded-xl border border-gold text-left transition-all active:scale-95 group shadow-md relative overflow-hidden ring-1 ring-gold/40"
+                                : "bg-zinc-800/90 hover:bg-zinc-700/80 p-2 rounded-xl border border-gray-700/60 text-left transition-all active:scale-95 group shadow-sm"
+                            }
+                          >
+                            {isStrategy && (
+                              <span className="absolute top-0 right-0 bg-gold text-black text-[7px] font-black px-1.5 py-0.2 rounded-bl-md shadow-xs uppercase tracking-tighter">
+                                ENGINE
+                              </span>
+                            )}
+                            <div className={`text-xs font-black transition-colors ${isStrategy ? 'text-gold group-hover:text-yellow-200' : 'text-white group-hover:text-gold'}`}>{f.label}</div>
+                            <div className={`text-[9px] font-bold uppercase tracking-tight ${isStrategy ? 'text-amber-200/90' : 'text-gray-400'}`}>{f.desc}</div>
+                          </button>
+                        );
+                      })}
                     </div>
                 </div>
 
-                <div className="bg-zinc-900 p-1.5 rounded-xl shadow-md border border-gray-800/50">
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-1 px-1">
+                <div className="bg-zinc-900 p-2 rounded-xl shadow-md border border-gray-800/80 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-1 border-b border-gray-800/60 pb-1.5">
                         <div className="flex items-center gap-2">
-                            <h2 className="text-[10px] font-black text-gold uppercase tracking-widest">{t('strategy')}</h2>
-                            <button onClick={() => setIsStrategyEnabled(!isStrategyEnabled)} className={`relative inline-flex items-center h-3.5 rounded-full w-7 transition-colors ${isStrategyEnabled ? 'bg-roulette-green' : 'bg-gray-700'}`}>
-                                <span className={`inline-block w-2.5 h-2.5 transform bg-white rounded-full transition-transform ${isStrategyEnabled ? 'translate-x-3.5' : 'translate-x-1'}`} />
-                            </button>
-                        </div>
-                        
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                            <div className="flex items-center gap-0.5 bg-zinc-800/50 p-0.5 rounded-lg border border-gray-700/30">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter px-1">
-                                    {t('spinsLookback')}:
-                                </span>
-                                {([3, 5, 8, 10, 12] as const).map(count => (
-                                    <button
-                                        key={count}
-                                        onClick={() => { triggerHaptic('light'); setClosedLookback(count); }}
-                                        disabled={!isStrategyEnabled}
-                                        className={`px-1.5 py-0.5 text-[9px] font-black rounded transition-all ${
-                                            closedLookback === count
-                                                ? 'bg-gold text-black shadow-xs font-extrabold'
-                                                : 'text-gray-400 hover:text-white disabled:opacity-40'
-                                        }`}
-                                    >
-                                        {count}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="flex bg-zinc-800/50 rounded-lg p-0.5 border border-gray-700/30">
-                                <button onClick={() => {triggerHaptic('light'); setNeighbourDepth(3)}} disabled={!isStrategyEnabled} className={`px-2 py-0.5 text-[9px] font-black rounded ${neighbourDepth === 3 ? 'bg-gold text-black' : 'text-gray-500'}`}>N3</button>
-                                <button onClick={() => {triggerHaptic('light'); setNeighbourDepth(5)}} disabled={!isStrategyEnabled} className={`px-2 py-0.5 text-[9px] font-black rounded ${neighbourDepth === 5 ? 'bg-gold text-black' : 'text-gray-500'}`}>N5</button>
-                            </div>
-
-                            <button onClick={() => {triggerHaptic('light'); setBetStrategyMode(m => m === '235' ? '123' : m === '123' ? '111' : '235')}} disabled={!isStrategyEnabled} className={`px-2 py-0.5 text-[9px] font-black rounded transition-all shadow-sm ${betStrategyMode === '235' ? 'bg-green-600 text-white' : betStrategyMode === '123' ? 'bg-yellow-500 text-black' : 'bg-blue-600 text-white'} disabled:opacity-30`}>{betStrategyMode}</button>
+                            <span className="text-xs">🎯</span>
+                            <h2 className="text-xs font-black text-gold uppercase tracking-wider">STRATEGY PREDICTION</h2>
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded font-black">
+                                {bettingMap.size} TARGET NUMBERS
+                            </span>
                         </div>
                     </div>
-                    {isStrategyEnabled && (
-                        <div className="animate-fade-in space-y-1.5">
-                            {spinHistory.length >= 1 ? (
-                                <>
-                                    {bettingMap.size > 0 && (
-                                        <div className="flex justify-between items-center py-1 border-t border-gray-800/50 px-1">
-                                            <div className="text-[9px] font-bold text-gray-400">
-                                                Last {Math.min(spinHistory.length, closedLookback)} spins (N{neighbourDepth}): {bettingMap.size} closed numbers
-                                            </div>
-                                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                                                {t('bet')}: <span className="text-gold text-xs">{totalBaseBetUnits * unitMultiplier}</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <BettingChart bettingMap={bettingMap} />
-                                </>
-                            ) : (
-                                <div className="border-t border-gray-800/50 pt-1.5 pb-0.5 text-center">
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic animate-pulse">{t('waiting')}</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+
+                    <div className="animate-fade-in space-y-1.5">
+                        {spinHistory.length >= 1 ? (
+                            <>
+                                {bettingMap.size > 0 && (
+                                    <div className="flex justify-between items-center py-0.5 px-1 text-[10px] font-black text-gray-400">
+                                        <span>Target Bet Units: <span className="text-gold text-xs font-black">{totalBaseBetUnits * unitMultiplier}</span></span>
+                                        <span className="text-[9px] text-gray-500 font-bold uppercase">Live Combined Strategy</span>
+                                    </div>
+                                )}
+                                <BettingChart bettingMap={bettingMap} signals={strategySignals} />
+                            </>
+                        ) : (
+                            <div className="pt-2 pb-1 text-center">
+                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic animate-pulse">{t('waiting')}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* 5-Criteria Prediction Engine Card */}
@@ -594,11 +617,13 @@ const App: React.FC = () => {
                     lastPrediction={lastPrediction}
                     lang={lang}
                     sectorSplitMode={sectorSplitMode}
-                    onSectorSplitChange={setSectorSplitMode}
+                    onSectorSplitChange={handleSectorSplitChange}
                     lastSpin={spinHistory.length > 0 ? spinHistory[spinHistory.length - 1] : null}
                     lastHitStatus={lastHitStatus}
                     isPro={isPro}
                     onActivated={handleActivated}
+                    strategyConfig={strategyConfig}
+                    onUpdateStrategyConfig={handleUpdateStrategyConfig}
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
@@ -639,6 +664,7 @@ const App: React.FC = () => {
                     onClearSession={handleClearSession}
                     onBack={() => switchPage('main')}
                     onOpenDashboard={() => switchPage('dashboard')}
+                    onOpenStrategy={() => switchPage('strategy')}
                     prediction={prediction}
                     lang={lang}
                     initialTab={activeFunctionTab}
@@ -665,6 +691,19 @@ const App: React.FC = () => {
                     lang={lang}
                     fiveDepths={fiveDepths}
                     sectorSplitMode={sectorSplitMode}
+                    strategyConfig={strategyConfig}
+                    onUpdateStrategyConfig={handleUpdateStrategyConfig}
+                />
+            </div>
+            ) : currentPage === 'strategy' ? (
+            <div className="animate-slide-up">
+                <StrategyPage
+                    strategyConfig={strategyConfig}
+                    onUpdateStrategy={handleUpdateStrategyConfig}
+                    onBack={() => switchPage('main')}
+                    lang={lang}
+                    spinHistory={spinHistory}
+                    activeBettingCount={bettingMap.size}
                 />
             </div>
             ) : (
