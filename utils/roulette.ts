@@ -121,33 +121,6 @@ export const getMultiCriteriaPrediction = (
         likelyColor = (Object.keys(colorCounts) as RouletteColor[]).sort((a,b) => colorCounts[b] - colorCounts[a])[0] || 'red';
     }
 
-    // 2. FINAL DIGIT PREDICTION (only final digits with 2 or more occurrences/transitions)
-    const lastFinal = lastNumber % 10;
-    const fTransitions: Map<number, number> = new Map();
-    for (let i = 0; i < history.length - 1; i++) {
-        if (history[i] % 10 === lastFinal) {
-            const next = history[i+1] % 10;
-            fTransitions.set(next, (fTransitions.get(next) || 0) + 1);
-        }
-    }
-    const finalDigits = Array.from(fTransitions.entries())
-        .filter(e => e[1] >= 2)
-        .sort((a,b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(e => e[0]);
-    
-    if (finalDigits.length === 0) {
-        const allFinals = history.map(n => n % 10);
-        const finalCounts: Map<number, number> = new Map();
-        allFinals.forEach(f => finalCounts.set(f, (finalCounts.get(f) || 0) + 1));
-        const topFinals = Array.from(finalCounts.entries())
-            .filter(e => e[1] >= 2)
-            .sort((a,b) => b[1] - a[1])
-            .slice(0, 2)
-            .map(e => e[0]);
-        finalDigits.push(...topFinals);
-    }
-
     // 3. SERIES PREDICTION (using seriesDepth)
     const seriesHistory = history.map(getSeriesType);
     const sTransitions: Map<SeriesType, number> = new Map();
@@ -298,15 +271,15 @@ export const getMultiCriteriaPrediction = (
     displacements.forEach(d => dispCounts.set(d, (dispCounts.get(d) || 0) + 1));
     
     const sortedDisps = Array.from(dispCounts.entries()).sort((a,b) => b[1]-a[1]).map(e => e[0]);
-    // Ensure we have top 1, top 2, and top 3 distinct distance steps (defaulting to 1, 2, 3 if needed)
-    const fallbackSteps = [1, 2, 3];
+    // Ensure we have top 1 through top 5 distinct distance steps (defaulting to 1..10 if needed)
+    const fallbackSteps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     const topDisps: number[] = [];
     for (const d of sortedDisps) {
         if (!topDisps.includes(d)) topDisps.push(d);
-        if (topDisps.length === 3) break;
+        if (topDisps.length === 5) break;
     }
     for (const fb of fallbackSteps) {
-        if (topDisps.length >= 3) break;
+        if (topDisps.length >= 5) break;
         if (!topDisps.includes(fb)) topDisps.push(fb);
     }
 
@@ -321,6 +294,72 @@ export const getMultiCriteriaPrediction = (
     const cwTarget = topSteps[0].cwTarget;
     const acwTarget = topSteps[0].acwTarget;
     const allPocketTargets = topSteps.flatMap(s => [s.cwTarget, s.acwTarget]);
+
+    // 2. FINAL DIGIT PREDICTION
+    const lastFinal = lastNumber % 10;
+    const finalLookback = Math.min(Math.max(finalDepth, 10), history.length);
+    const recentHistory = history.slice(-finalLookback);
+
+    const fTransitions: Map<number, number> = new Map();
+    const lastTransitionIndex: Map<number, number> = new Map();
+    
+    // Primary scan: count transitions following lastFinal across history
+    for (let i = 0; i < history.length - 1; i++) {
+        if (history[i] % 10 === lastFinal) {
+            const next = history[i + 1] % 10;
+            fTransitions.set(next, (fTransitions.get(next) || 0) + 1);
+            lastTransitionIndex.set(next, i); // Higher index = occurred more recently after lastFinal
+        }
+    }
+
+    const finalCounts: Map<number, number> = new Map();
+    recentHistory.forEach(n => {
+        const f = n % 10;
+        finalCounts.set(f, (finalCounts.get(f) || 0) + 1);
+    });
+
+    const digitScored = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => {
+        const transCount = fTransitions.get(d) || 0;
+        const lastTransIdx = lastTransitionIndex.get(d) ?? -1;
+        const totalCount = finalCounts.get(d) || 0;
+
+        // Cross-criteria synergy evaluation for candidate numbers ending in digit d
+        const candidateNums = ROULETTE_NUMBERS.filter(n => n % 10 === d);
+        const colorSynergy = likelyColor ? candidateNums.filter(n => NUMBER_COLORS[n] === likelyColor).length : 0;
+        const sectorSynergy = likelySector ? candidateNums.filter(n => likelySector.numbers.includes(n)).length : 0;
+        const seriesSynergy = candidateNums.filter(n => getSeriesType(n) === likelySeries).length;
+        const pocketSynergy = candidateNums.filter(n => allPocketTargets.includes(n)).length;
+
+        const synergyScore = (colorSynergy * 15) + (sectorSynergy * 20) + (seriesSynergy * 15) + (pocketSynergy * 25);
+
+        return { digit: d, transCount, synergyScore, lastTransIdx, totalCount };
+    });
+
+    digitScored.sort((a, b) => {
+        // Primary Key — Transition Frequency Following Latest Spin Ending Digit (transCount)
+        if (b.transCount !== a.transCount) {
+            return b.transCount - a.transCount;
+        }
+        // Secondary Key — Cross-Criteria Synergy (synergyScore)
+        if (b.synergyScore !== a.synergyScore) {
+            return b.synergyScore - a.synergyScore;
+        }
+        // Tertiary Key — Transition Recency (lastTransIdx)
+        if (b.lastTransIdx !== a.lastTransIdx) {
+            return b.lastTransIdx - a.lastTransIdx;
+        }
+        // Quaternary Key — Overall Frequency (totalCount)
+        if (b.totalCount !== a.totalCount) {
+            return b.totalCount - a.totalCount;
+        }
+        // Fallback: Numeric order
+        return a.digit - b.digit;
+    });
+
+    // Limit strictly to user configured count: 2, 3, or 4 (default 3)
+    const requestedFinalCount = strategyConfig?.finalDigitsCount ?? 3;
+    const finalDigitsCountToUse = Math.min(Math.max(requestedFinalCount, 2), 4);
+    const finalDigits = digitScored.slice(0, finalDigitsCountToUse).map(item => item.digit);
 
     // COMPOSITE SCORING FOR ALL 37 NUMBERS ACROSS 5 CRITERIA + PATTERN ALERTS
     const scores: Map<number, { score: number; matched: string[] }> = new Map();
@@ -697,18 +736,18 @@ export const calculateStrategySignals = (
     }
 
     const dozensArr = [
-      { id: '1st Dozen (1-12)', count: dozensCount[0], sleep: sleepD1 >= 0 ? sleepD1 : 99 },
-      { id: '2nd Dozen (13-24)', count: dozensCount[1], sleep: sleepD2 >= 0 ? sleepD2 : 99 },
-      { id: '3rd Dozen (25-36)', count: dozensCount[2], sleep: sleepD3 >= 0 ? sleepD3 : 99 },
+      { id: '1st Dozen', count: dozensCount[0], sleep: sleepD1 >= 0 ? sleepD1 : 99 },
+      { id: '2nd Dozen', count: dozensCount[1], sleep: sleepD2 >= 0 ? sleepD2 : 99 },
+      { id: '3rd Dozen', count: dozensCount[2], sleep: sleepD3 >= 0 ? sleepD3 : 99 },
     ];
     const sortedDozensHits = [...dozensArr].sort((a,b) => b.count - a.count);
-    const dozenStr = `${sortedDozensHits[0].id.split(' ')[0]} + ${sortedDozensHits[1].id.split(' ')[0]} (3:2 Return)`;
+    const dozenStr = `${sortedDozensHits[0].id} + ${sortedDozensHits[1].id}`;
 
     signals.push({
       type: 'dozen',
-      label: 'DOZEN SIGNAL',
+      label: 'DOZEN',
       value: dozenStr,
-      badgeClass: 'bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-xs font-black',
+      badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs font-black',
     });
   }
 
@@ -738,17 +777,17 @@ export const calculateStrategySignals = (
       { id: 'Col 3', count: colsCount[2], sleep: sleepC3 >= 0 ? sleepC3 : 99 },
     ];
     const sortedColsHits = [...colsArr].sort((a,b) => b.count - a.count);
-    const colStr = `${sortedColsHits[0].id} + ${sortedColsHits[1].id} (3:2 Return)`;
+    const colStr = `${sortedColsHits[0].id} + ${sortedColsHits[1].id}`;
 
     signals.push({
       type: 'col',
-      label: 'COLUMN SIGNAL',
+      label: 'COLUMN',
       value: colStr,
-      badgeClass: 'bg-blue-500/25 text-blue-300 border-blue-500/50 shadow-xs font-black',
+      badgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-xs font-black',
     });
   }
 
-  // 2. COLOUR
+  // 3. COLOUR
   if (config.colorEnabled) {
     const recentColors = history.slice(-10).map(n => NUMBER_COLORS[n]);
     const redCount = recentColors.filter(c => c === 'red').length;
@@ -760,12 +799,12 @@ export const calculateStrategySignals = (
       label: 'COLOUR',
       value: isRed ? 'RED 🔴' : 'BLACK ⬛',
       badgeClass: isRed
-        ? 'bg-red-500/20 text-red-400 border-red-500/40'
-        : 'bg-zinc-800 text-gray-200 border-zinc-600',
+        ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-xs font-black'
+        : 'bg-zinc-800 text-gray-200 border-zinc-600 shadow-xs font-black',
     });
   }
 
-  // 3. SERIES
+  // 4. SERIES
   if (config.seriesEnabled) {
     const seriesHistory = history.map(getSeriesType);
     const lastNum = history[history.length - 1];
@@ -785,15 +824,15 @@ export const calculateStrategySignals = (
     }
     const likelySeries: SeriesType = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNum) || 'Top';
 
-    let seriesText = 'Voisins (Top) 🎯';
-    if (likelySeries === 'Small') seriesText = 'Tiers (Small) 🥖';
-    else if (likelySeries === 'Middle') seriesText = 'Orphelins (Middle) ⚡';
+    let seriesText = 'Voisins (Top)';
+    if (likelySeries === 'Small') seriesText = 'Tiers (Small)';
+    else if (likelySeries === 'Middle') seriesText = 'Orphelins (Middle)';
 
     signals.push({
       type: 'series',
       label: 'SERIES',
       value: seriesText,
-      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-xs font-black',
     });
   }
 

@@ -215,6 +215,20 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
   const hitTopIndex = lastPrediction?.topNumbers.findIndex(tn => tn.num === lastSpin);
   const hitTopRank = hitTopIndex !== undefined && hitTopIndex !== -1 ? hitTopIndex + 1 : null;
 
+  const getDozenName = (num: number) => {
+    if (num === 0) return '0 (Zero)';
+    if (num >= 1 && num <= 12) return '1st Dozen (1-12)';
+    if (num >= 13 && num <= 24) return '2nd Dozen (13-24)';
+    return '3rd Dozen (25-36)';
+  };
+
+  const getColumnName = (num: number) => {
+    if (num === 0) return '0 (Zero)';
+    if (num % 3 === 1) return '1st Col (1,4,7...)';
+    if (num % 3 === 2) return '2nd Col (2,5,8...)';
+    return '3rd Col (3,6,9...)';
+  };
+
   return (
     <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-xl border border-gold/40 shadow-lg space-y-2.5 transition-all">
       {/* LAST SPIN HIT ANNOUNCEMENT BANNER */}
@@ -261,6 +275,13 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                 📏 Pocket Distance Step Hit
               </span>
             )}
+            {/* Included Dozen & Column Info */}
+            <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+              📊 Dozen: {getDozenName(lastSpin)}
+            </span>
+            <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+              📊 Column: {getColumnName(lastSpin)}
+            </span>
           </div>
         </div>
       )}
@@ -381,14 +402,16 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
         {/* Row 1: 3 Compact Criteria (Colour, Final, Series) */}
         <div className="md:col-span-3 grid grid-cols-3 gap-1">
           {/* Colour */}
-          <div className="p-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex items-center justify-between transition-all">
-            <span className="text-[9px] font-black uppercase flex items-center gap-1 text-gray-400">
-              🎨 {t.color}
-            </span>
-            <div className="flex items-center gap-1">
+          <div className="p-1 px-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex flex-col justify-between gap-0.5 min-h-[38px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase text-gray-400">
+                🎨 {t.color}
+              </span>
+            </div>
+            <div className="flex items-center justify-center">
               {color ? (
-                <div
-                  className={`w-4 h-4 rounded flex items-center justify-center text-[9px] font-black transition-all ${
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[9px] font-black transition-all ${
                     color === 'red'
                       ? 'bg-roulette-red text-white'
                       : color === 'black'
@@ -396,8 +419,8 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                       : 'bg-roulette-green text-white'
                   }`}
                 >
-                  {color === 'red' ? 'R' : color === 'black' ? 'B' : 'G'}
-                </div>
+                  {color === 'red' ? 'RED 🔴' : color === 'black' ? 'BLACK ⬛' : 'GREEN 🟢'}
+                </span>
               ) : (
                 <span className="text-[9px] font-black text-gray-500">?</span>
               )}
@@ -405,14 +428,37 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           </div>
 
           {/* Final Digit */}
-          <div className="p-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex items-center justify-between transition-all">
-            <span className="text-[9px] font-black uppercase flex items-center gap-1 text-gray-400">
-              🔢 {t.final}
-            </span>
-            <div className="flex gap-0.5">
+          <div className="p-1 px-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex flex-col justify-between gap-0.5 min-h-[38px]">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[9px] font-black uppercase text-gray-400">
+                🔢 {t.final}
+              </span>
+              <div className="flex items-center gap-0.5 bg-zinc-950 px-1 py-0.2 rounded border border-gray-800">
+                {([2, 3, 4] as const).map(cnt => (
+                  <button
+                    key={cnt}
+                    type="button"
+                    onClick={() => {
+                      if (onUpdateStrategyConfig && strategyConfig) {
+                        onUpdateStrategyConfig({ ...strategyConfig, finalDigitsCount: cnt });
+                      }
+                    }}
+                    className={`px-1 py-0 rounded text-[8px] font-black transition-all ${
+                      (strategyConfig?.finalDigitsCount || 3) === cnt
+                        ? 'bg-gold text-black shadow-xs font-extrabold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                    title={`Top ${cnt} Final Digits`}
+                  >
+                    {cnt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-1 flex-wrap">
               {finalDigits.length > 0 ? (
                 finalDigits.map((f, i) => (
-                  <span key={i} className="text-[10px] font-black text-gold">
+                  <span key={i} className="text-[9.5px] font-black text-gold bg-zinc-950 px-1.5 py-0.2 rounded border border-gold/30">
                     {f}
                   </span>
                 ))
@@ -423,23 +469,27 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           </div>
 
           {/* Series */}
-          <div className="p-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex items-center justify-between transition-all">
-            <span className="text-[9px] font-black uppercase flex items-center gap-1 text-gray-400">
-              🧭 {t.series}
-            </span>
-            <span
-              className={`text-[10px] font-black truncate ${
-                series === 'Top'
-                  ? 'text-blue-400'
-                  : series === 'Small'
-                  ? 'text-yellow-400'
-                  : series === 'Middle'
-                  ? 'text-purple-400'
-                  : 'text-gray-400'
-              }`}
-            >
-              {series === 'Top' ? 'Top series' : series === 'Small' ? 'Small series' : series === 'Middle' ? 'Orphelins' : '?'}
-            </span>
+          <div className="p-1 px-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex flex-col justify-between gap-0.5 min-h-[38px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase text-gray-400">
+                🧭 {t.series}
+              </span>
+            </div>
+            <div className="flex items-center justify-center">
+              <span
+                className={`text-[9px] font-black truncate px-1.5 py-0.2 rounded bg-zinc-950 border border-gray-800 ${
+                  series === 'Top'
+                    ? 'text-blue-400 border-blue-500/30'
+                    : series === 'Small'
+                    ? 'text-yellow-400 border-yellow-500/30'
+                    : series === 'Middle'
+                    ? 'text-purple-400 border-purple-500/30'
+                    : 'text-gray-400'
+                }`}
+              >
+                {series === 'Top' ? 'Top series' : series === 'Small' ? 'Small series' : series === 'Middle' ? 'Orphelins' : '?'}
+              </span>
+            </div>
           </div>
         </div>
 

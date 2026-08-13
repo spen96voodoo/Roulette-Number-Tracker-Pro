@@ -35,7 +35,7 @@ interface PredictionDisplayProps {
     lang: Language;
 }
 
-export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction, lastHitStatus, lang }) => {
+export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction, lastHitStatus, lastSpin, lang }) => {
     const t = labels[lang] || labels['en'];
     if (!prediction) {
         return (
@@ -47,12 +47,26 @@ export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction
 
     const hasAnyHit = !!(lastHitStatus && (lastHitStatus.color || lastHitStatus.final || lastHitStatus.series || lastHitStatus.top || lastHitStatus.sector || lastHitStatus.pocket));
 
+    const getDozenName = (num: number) => {
+        if (num === 0) return '0';
+        if (num <= 12) return '1D';
+        if (num <= 24) return '2D';
+        return '3D';
+    };
+
+    const getColumnName = (num: number) => {
+        if (num === 0) return '0';
+        if (num % 3 === 1) return '1C';
+        if (num % 3 === 2) return '2C';
+        return '3C';
+    };
+
     return (
         <div className="flex items-center gap-1.5 sm:gap-2.5 bg-zinc-800/80 px-2 py-1 rounded-md shadow-inner transition-all border border-gray-700/30">
             {hasAnyHit && (
                 <div className="flex items-center gap-1 bg-emerald-950 border border-emerald-500/80 px-1.5 py-0.5 rounded text-[9px] font-black text-emerald-300 animate-bounce shadow-sm">
                     <span>🎯</span>
-                    <span>{t.hit}</span>
+                    <span>{t.hit} {lastSpin !== null && lastSpin !== undefined ? `(#${lastSpin} | ${getDozenName(lastSpin)}/${getColumnName(lastSpin)})` : ''}</span>
                 </div>
             )}
 

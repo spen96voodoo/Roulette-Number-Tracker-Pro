@@ -13,10 +13,10 @@ interface StrategyPageProps {
 
 const strategyLabels = {
   en: {
-    title: "Betting Strategy Customizer",
-    subtitle: "Customize active prediction engines & combine strategy signals for the betting chart",
+    title: "Strategy Customizer",
+    subtitle: "Customize active prediction engines & combine strategy signals for the strategy chart",
     back: "Back to Main",
-    apply: "Apply & View Betting Chart",
+    apply: "Apply & View Strategy Chart",
     presets: "Quick Strategy Presets",
     presetAll: "All Engines Active",
     presetVector: "Wheel Vector Only",
@@ -30,7 +30,7 @@ const strategyLabels = {
     p1Desc: "Target adjacent wheel numbers based on recent spin history recency and progression.",
     spinLookback: "Related Spin Count",
     neighbourDepth: "Neighbour Range",
-    progression: "Bet Unit Progression",
+    progression: "Unit Progression",
 
     // Part 2
     p2Title: "2) Wheel Vector & Sectors",

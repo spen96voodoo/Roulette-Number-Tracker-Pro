@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { Language, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from '../types';
-import { getNeighbours, getSeriesType, getMultiCriteriaPrediction } from '../utils/roulette';
-import { NUMBER_COLORS, EUROPEAN_WHEEL_ORDER } from '../constants';
+import { getNeighbours, getMultiCriteriaPrediction } from '../utils/roulette';
+import { NUMBER_COLORS, ROULETTE_NUMBERS } from '../constants';
 
 interface DashboardPageProps {
   spinHistory: number[];
@@ -25,123 +25,123 @@ const dashLabels = {
     overallAccuracy: "Engine Consensus Accuracy",
     netReturnUnits: "Net Strategy Return",
     closedTitle: "1) Closed Numbers Strategy & Unit Return",
-    closedDesc: "Adjacent closed numbers prediction with configurable spin lookback, neighbour depth, and bet unit progression.",
+    closedDesc: "Adjacent closed numbers prediction with configurable spin lookback, neighbour depth, and input unit progression.",
     spinLookback: "Lookback Spins",
     neighbourDepth: "Neighbour Depth",
-    progressionMode: "Unit Progression",
+    progressionMode: "Input Progression",
     gamesPredicted: "Games Predicted",
     gamesHit: "Games Hit",
     hitRatio: "Hit Ratio %",
-    basicReturnRatio: "Basic Return Ratio",
-    unitsBet: "Total Bet Units",
+    basicReturnRatio: "Basic Baseline",
+    unitsInput: "Total Input Units",
     unitsReturned: "Total Return Units",
-    netPL: "Net P/L Units",
-    roi: "ROI %",
+    returnCount: "Return Count",
+    returnPct: "Return %",
     colorTitle: "2) Colour Prediction (Red / Black)",
-    colorDesc: "Historical color trend consensus prediction compared against standard 48.65% European roulette probability.",
+    colorDesc: "Historical color trend consensus prediction compared against standard 48.0% baseline.",
     seriesTitle: "3) Wheel Series Prediction (French Sectors)",
-    seriesDesc: "Top series (Voisins), Small series (Tiers), and Orphelins sector hit ratio.",
+    seriesDesc: "Top series (Voisins), Small series (Tiers), and Orphelins sector hit ratio against 33.0% baseline.",
     vectorTitle: "4) Wheel Vector & Sector Map",
-    vectorDesc: "Sector slice prediction hit ratio based on current wheel split configuration.",
+    vectorDesc: "Sector slice prediction hit ratio and unit return based on strategy choice (Next Probable / History / Both).",
     finalTitle: "5) Final Matrix Digit Prediction",
-    finalDesc: "0-9 ending digit pattern prediction hit ratio across spin history.",
+    finalDesc: "0-9 ending digit pattern prediction hit ratio and unit return.",
     pocketTitle: "6) Pockets Distance Step Prediction",
-    pocketDesc: "Top 3 ranked pocket displacement step predictions (0-18 steps).",
+    pocketDesc: "Pocket step displacement predictions hit ratio and unit return.",
     topNumsTitle: "7) Top Core Recommended Numbers",
-    topNumsDesc: "Top 3 high-confidence consensus numbers prediction direct hit ratio.",
+    topNumsDesc: "Top 3 high-confidence consensus numbers prediction direct hit ratio and unit return.",
     dozensTitle: "8) Dozens & Columns Strategic Signals",
-    dozensDesc: "Dozens and Columns strategic signal prediction hit ratio.",
+    dozensDesc: "Dozens (1st, 2nd, 3rd) and Columns (1st, 2nd, 3rd) strategic signal hit ratio and unit return.",
     statusAbove: "OVER BASELINE",
     statusBelow: "BELOW BASELINE",
     baseline: "Theoretical Baseline",
     actual: "Actual Hit Rate",
   },
   zh: {
-    title: "系统功能命中率与准确率仪表盘",
-    subtitle: "5大预测引擎与策略回测收益率全维度计算与对照分析",
+    title: "系统功能命中率与 Return 仪表盘",
+    subtitle: "5大预测引擎与策略回测 Return 全维度计算与对照分析",
     back: "返回主页",
     noDataTitle: "旋转数据不足",
-    noDataDesc: "请在主界面录入至少 5-8 轮历史数据，以计算系统的预测准确率与收益指标。",
+    noDataDesc: "请在主界面录入至少 5-8 轮历史数据，以计算系统的预测准确率与 Return 指标。",
     spinsInput: "录入总轮数",
     roundsPredicted: "预测总轮数",
     overallAccuracy: "引擎综合命中率",
-    netReturnUnits: "策略净盈亏注数",
-    closedTitle: "1) 相邻闭合号码与注数收益回测",
-    closedDesc: "根据旋转回看轮数、邻号深度和注码递进策略进行精准模拟与盈亏计算。",
+    netReturnUnits: "策略净 Return 注数",
+    closedTitle: "1) 相邻闭合号码与 Input 收益回测",
+    closedDesc: "根据旋转回看轮数、邻号深度和 Input 递进策略进行精准模拟与 Return 计算。",
     spinLookback: "回看轮数",
     neighbourDepth: "邻号深度",
-    progressionMode: "注码策略",
+    progressionMode: "Input 策略",
     gamesPredicted: "预测游戏数",
     gamesHit: "命中游戏数",
     hitRatio: "命中率 %",
-    basicReturnRatio: "基础基础概率",
-    unitsBet: "投注总注数",
-    unitsReturned: "派彩总注数",
-    netPL: "净盈亏注数",
-    roi: "投资回报率 ROI",
+    basicReturnRatio: "基础理论概率",
+    unitsInput: "Input 总注数",
+    unitsReturned: "Return 总注数",
+    returnCount: "Return 统计",
+    returnPct: "Return 百分比",
     colorTitle: "2) 颜色预测 (红/黑/绿)",
-    colorDesc: "颜色趋势预测命中率对照标准 48.65% 理论期望概率。",
+    colorDesc: "颜色趋势预测命中率对照 48.0% 基准门槛。",
     seriesTitle: "3) 轮盘分区预测 (法式 Sector)",
-    seriesDesc: "大轮区 (Top series)、小轮区 (Tiers) 与孤注区 (Orphelins) 预测命中率。",
+    seriesDesc: "大轮区 (Top series)、小轮区 (Tiers) 与孤注区 (Orphelins) 预测对照 33.0% 基准。",
     vectorTitle: "4) 轮盘向量与 Sector 区域",
-    vectorDesc: "基于当前切分模式下的 Sector 区域预测命中率。",
+    vectorDesc: "基于当前策略选择 (Next / History / Both) 的 Sector 预测命中率与 Return 统计。",
     finalTitle: "5) 尾数矩阵预测",
-    finalDesc: "0-9 尾数模式预测命中率对照。",
+    finalDesc: "0-9 尾数模式预测命中率与 Return 统计。",
     pocketTitle: "6) 轮盘口袋距离步数预测",
-    pocketDesc: "Top 3 步数 (0-18步) 偏移预测命中率。",
+    pocketDesc: "口袋距离步数偏移预测命中率与 Return 统计。",
     topNumsTitle: "7) 核心推荐号码",
-    topNumsDesc: "Top 3 高置信度号码直接命中率。",
+    topNumsDesc: "Top 3 高置信度号码直接命中率与 Return 统计。",
     dozensTitle: "8) 打列策略信号",
-    dozensDesc: "几十区与三列横排策略信号命中率。",
+    dozensDesc: "几十区与三列横排策略信号命中率与 Return 统计。",
     statusAbove: "高于基础期望",
     statusBelow: "低于基础期望",
     baseline: "理论基础期望",
     actual: "实际命中率",
   },
   ja: {
-    title: "システム的中率＆パフォーマンスダッシュボード",
-    subtitle: "5基準予測エンジンと戦略バックテストの的中率・還元率詳細分析",
+    title: "システム的中率＆還元パフォーマンスダッシュボード",
+    subtitle: "5基準予測エンジンと戦略バックテストの的中率・Return詳細分析",
     back: "メインに戻る",
     noDataTitle: "データが不足しています",
-    noDataDesc: "正確な的中率と還元率を計算するには、メイン画面で最低5〜8回のスピンを入力してください。",
+    noDataDesc: "正確な的中率とReturnを計算するには、メイン画面で最低5〜8回のスピンを入力してください。",
     spinsInput: "入力スピン数",
     roundsPredicted: "予測試行数",
     overallAccuracy: "総合的中率",
     netReturnUnits: "純損益ユニット",
-    closedTitle: "1) 隣接閉鎖番号＆ユニット還元率",
-    closedDesc: "ルックバック回数、隣接深度、注碼プログレッションによるバックテスト検証。",
+    closedTitle: "1) 隣接閉鎖番号＆Input還元率",
+    closedDesc: "ルックバック回数、隣接深度、Inputプログレッションによるバックテスト検証。",
     spinLookback: "ルックバック数",
     neighbourDepth: "隣接深度",
-    progressionMode: "注碼モード",
+    progressionMode: "Input モード",
     gamesPredicted: "予測ゲーム数",
     gamesHit: "的中ゲーム数",
     hitRatio: "的中率 %",
     basicReturnRatio: "基本理論確率",
-    unitsBet: "総ベット数",
-    unitsReturned: "総配当数",
-    netPL: "純損益",
-    roi: "ROI %",
+    unitsInput: "総 Input ユニット",
+    unitsReturned: "総 Return ユニット",
+    returnCount: "Return カウント",
+    returnPct: "Return %",
     colorTitle: "2) カラー予測 (赤/黒)",
-    colorDesc: "ヨーロピアンルーレット基本確率48.65%との比較検証。",
+    colorDesc: "ヨーロピアンルーレット48.0%基準との比較検証。",
     seriesTitle: "3) セクター予測 (フレンチセクター)",
-    seriesDesc: "Top series, Tiers, Orphelinsセクター予測的中率。",
+    seriesDesc: "Top series, Tiers, Orphelinsセクター予測の33.0%基準比較的中率。",
     vectorTitle: "4) ホイールベクトル＆セクターマップ",
-    vectorDesc: "現在のセクター分割モードに基づく予測的中率。",
+    vectorDesc: "現在の戦略選択(Next / History / Both)に基づく予測的中率とReturn統計。",
     finalTitle: "5) 下一桁マトリックス予測",
-    finalDesc: "0-9下一桁パターンの予測的中率。",
+    finalDesc: "0-9下一桁パターンの予測的中率とReturn統計。",
     pocketTitle: "6) ポケット距離ステップ予測",
-    pocketDesc: "上位3ステップ (0-18ステップ) 偏移の的中率。",
+    pocketDesc: "上位ステップ偏移の的中率とReturn統計。",
     topNumsTitle: "7) 推奨コア番号",
-    topNumsDesc: "Top 3高信頼度番号の直撃的中率。",
+    topNumsDesc: "Top 3高信頼度番号の直撃的中率とReturn統計。",
     dozensTitle: "8) ダズン・カラム戦略シグナル",
-    dozensDesc: "ダズンおよびカラムシグナルの的中率分析。",
+    dozensDesc: "ダズンおよびカラムシグナルの的中率とReturn統計。",
     statusAbove: "基本確率超え",
     statusBelow: "基本確率未満",
     baseline: "理論基本確率",
     actual: "実際の的中率",
   },
   es: {
-    title: "Panel de Rendimiento y Tasa de Acierto",
+    title: "Panel de Rendimiento y Return",
     subtitle: "Análisis de precisión y retorno para los 5 criterios de predicción",
     back: "Volver al Menú",
     noDataTitle: "Datos Insuficientes",
@@ -151,116 +151,116 @@ const dashLabels = {
     overallAccuracy: "Precisión General Engine",
     netReturnUnits: "Retorno Neto Unidades",
     closedTitle: "1) Estrategia de Números Cerrados y Retorno",
-    closedDesc: "Predicción de números cerrados con configuración de giros, profundidad de vecinos y progresión.",
+    closedDesc: "Predicción de números cerrados con configuración de giros, profundidad de vecinos y progresión de Input.",
     spinLookback: "Giros Retroceso",
     neighbourDepth: "Vecinos",
-    progressionMode: "Progresión",
+    progressionMode: "Progresión Input",
     gamesPredicted: "Juegos Predichos",
     gamesHit: "Juegos Acertados",
     hitRatio: "Tasa Acierto %",
     basicReturnRatio: "Retorno Básico Teórico",
-    unitsBet: "Unidades Apostadas",
-    unitsReturned: "Unidades Cobradas",
-    netPL: "P/L Neto",
-    roi: "ROI %",
+    unitsInput: "Unidades Input",
+    unitsReturned: "Unidades Retorno",
+    returnCount: "Conteo Return",
+    returnPct: "Return %",
     colorTitle: "2) Predicción de Color (Rojo / Negro)",
-    colorDesc: "Comparación de acierto con la probabilidad europea estándar del 48.65%.",
+    colorDesc: "Comparación de acierto con la base estándar del 48.0%.",
     seriesTitle: "3) Predicción de Series del Cilindro",
-    seriesDesc: "Tasa de aciertos para Top series, Small series y Orphelins.",
+    seriesDesc: "Tasa de aciertos para Top series, Small series y Orphelins frente al 33.0% base.",
     vectorTitle: "4) Vector de Cilindro y Sectores",
-    vectorDesc: "Tasa de aciertos según el modo de división de sectores actual.",
+    vectorDesc: "Tasa de aciertos y retorno según modo de estrategia (Next / History / Both).",
     finalTitle: "5) Predicción de Matriz de Números Finales",
-    finalDesc: "Tasa de acierto para patrones de terminación 0-9.",
+    finalDesc: "Tasa de acierto y retorno para patrones de terminación 0-9.",
     pocketTitle: "6) Predicción de Pasos de Distancia de Bolsillo",
-    pocketDesc: "Tasa de acierto para los 3 mejores pasos de desplazamiento (0-18).",
+    pocketDesc: "Tasa de acierto y retorno para los mejores pasos de desplazamiento.",
     topNumsTitle: "7) Números Núcleo Recomendados",
-    topNumsDesc: "Tasa de impacto directo para los 3 números con mayor confianza.",
+    topNumsDesc: "Tasa de impacto directo y retorno para los 3 números con mayor confianza.",
     dozensTitle: "8) Señales Estratégicas de Docenas y Columnas",
-    dozensDesc: "Tasa de acierto para señales de docenas y columnas.",
+    dozensDesc: "Tasa de acierto y retorno para señales de docenas y columnas.",
     statusAbove: "SOBRE BASE TEÓRICA",
     statusBelow: "BAJO BASE TEÓRICA",
     baseline: "Base Teórica",
     actual: "Acierto Real",
   },
   ko: {
-    title: "대시보드 - 적중률 및 수익 분석",
-    subtitle: "5대 예측 엔진의 각 영역별 적중률 및 수익율 백테스트 분석",
+    title: "대시보드 - 적중률 및 Return 분석",
+    subtitle: "5대 예측 엔진의 각 영역별 적중률 및 Return 백테스트 분석",
     back: "메인으로 돌아가기",
     noDataTitle: "스핀 데이터 부족",
-    noDataDesc: "정확한 적중률과 수익률 분석을 위해 메인 화면에서 최소 5~8회의 스핀 데이터를 입력해 주세요.",
+    noDataDesc: "정확한 적중률과 Return 분석을 위해 메인 화면에서 최소 5~8회의 스핀 데이터를 입력해 주세요.",
     spinsInput: "입력된 스핀 수",
     roundsPredicted: "예측 진행 라운드",
     overallAccuracy: "엔진 종합 적중률",
-    netReturnUnits: "전략 순수익 유닛",
-    closedTitle: "1) 인접 닫힌 번호 및 유닛 수익율",
-    closedDesc: "스핀 회수, 인접 깊이(N3/N5), 배팅 시스템에 따른 수익율 백테스트.",
+    netReturnUnits: "전략 순 Return 유닛",
+    closedTitle: "1) 인접 닫힌 번호 및 Input/Return 분석",
+    closedDesc: "스핀 회수, 인접 깊이(N3/N5), Input 시스템에 따른 Return 백테스트.",
     spinLookback: "회수 스핀 수",
     neighbourDepth: "인접 깊이",
-    progressionMode: "배팅 모드",
+    progressionMode: "Input 모드",
     gamesPredicted: "예측 게임 수",
     gamesHit: "적중 게임 수",
     hitRatio: "적중률 %",
     basicReturnRatio: "기본 이론 환급률",
-    unitsBet: "총 배팅 유닛",
-    unitsReturned: "총 환급 유닛",
-    netPL: "순손익",
-    roi: "수익률 ROI",
+    unitsInput: "총 Input 유닛",
+    unitsReturned: "총 Return 유닛",
+    returnCount: "Return 카운트",
+    returnPct: "Return %",
     colorTitle: "2) 색상 예측 (레드 / 블랙)",
-    colorDesc: "유러피언 룰렛 기본 확률 48.65% 대비 적중률 검증.",
+    colorDesc: "유러피언 룰렛 기본 48.0% 기준 대비 적중률 검증.",
     seriesTitle: "3) 휠 구역(Series) 예측",
-    seriesDesc: "Top series, Tiers, Orphelins 구역 적중률.",
+    seriesDesc: "Top series, Tiers, Orphelins 구역 33.0% 기준 대비 적중률.",
     vectorTitle: "4) 휠 벡터 및 섹터 맵",
-    vectorDesc: "현재 분할 모드 기준 섹터 적중률.",
+    vectorDesc: "현재 전략 선택(Next / History / Both) 기준 섹터 적중률 및 Return.",
     finalTitle: "5) 끝수 매트릭스 예측",
-    finalDesc: "0-9 끝수 패턴 적중률 분석.",
+    finalDesc: "0-9 끝수 패턴 적중률 및 Return 분석.",
     pocketTitle: "6) 포켓 거리 단계 예측",
-    pocketDesc: "상위 3개 이동 거리(0-18 단계) 적중률.",
+    pocketDesc: "상위 이동 거리 단계 적중률 및 Return.",
     topNumsTitle: "7) 핵심 추천 번호",
-    topNumsDesc: "상위 3개 핵심 추천 번호 직격 적중률.",
+    topNumsDesc: "상위 3개 핵심 추천 번호 직격 적중률 및 Return.",
     dozensTitle: "8) 더즌 및 컬럼 전략 시그널",
-    dozensDesc: "더즌 및 컬럼 신호 적중률.",
+    dozensDesc: "더즌 및 컬럼 신호 적중률 및 Return.",
     statusAbove: "이론치 상회",
     statusBelow: "이론치 하회",
     baseline: "이론 기본치",
     actual: "실제 적중률",
   },
   vi: {
-    title: "Bảng Điều Khiển Tỷ Lệ Trúng & Hiệu Suất",
-    subtitle: "Phân tích tỷ lệ trúng và lợi nhuận cho 5 tiêu chuẩn dự đoán",
+    title: "Bảng Điều Khiển Tỷ Lệ Trúng & Return",
+    subtitle: "Phân tích tỷ lệ trúng và Return cho 5 tiêu chuẩn dự đoán",
     back: "Trở Về Trang Chính",
     noDataTitle: "Chưa Đủ Dữ Liệu",
     noDataDesc: "Vui lòng nhập ít nhất 5-8 lượt quay ở màn hình chính để tính toán chỉ số chính xác.",
     spinsInput: "Tổng Số Lượt Nhập",
     roundsPredicted: "Số Lượt Dự Đoán",
     overallAccuracy: "Độ Chính Xác Tổng Thể",
-    netReturnUnits: "Lợi Nhuận Ròng (Đơn Vị)",
-    closedTitle: "1) Số Lân Cận Khép Kín & Lợi Nhuận Đơn Vị",
-    closedDesc: "Dự đoán số khép kín lân cận với tùy chỉnh số vòng quay, độ sâu N3/N5 và chế độ đặt cược.",
+    netReturnUnits: "Lợi Nhuận Return (Đơn Vị)",
+    closedTitle: "1) Số Lân Cận Khép Kín & Return",
+    closedDesc: "Dự đoán số khép kín lân cận với tùy chỉnh số vòng quay, độ sâu N3/N5 và chế độ Input.",
     spinLookback: "Số Vòng Quay",
     neighbourDepth: "Độ Sâu Lân Cận",
-    progressionMode: "Chế Độ Cược",
+    progressionMode: "Chế Độ Input",
     gamesPredicted: "Số Trận Dự Đoán",
     gamesHit: "Số Trận Trúng",
     hitRatio: "Tỷ Lệ Trúng %",
     basicReturnRatio: "Tỷ Lệ Hoàn Vốn Cơ Bản",
-    unitsBet: "Tổng Đơn Vị Cược",
-    unitsReturned: "Tổng Đơn Vị Thắng",
-    netPL: "Lời/Lỗ Ròng",
-    roi: "ROI %",
+    unitsInput: "Tổng Đơn Vị Input",
+    unitsReturned: "Tổng Đơn Vị Return",
+    returnCount: "Thống Kê Return",
+    returnPct: "Tỷ Lệ Return %",
     colorTitle: "2) Dự Đoán Màu Sắc (Đỏ / Đen)",
-    colorDesc: "So sánh tỷ lệ trúng màu sắc với xác suất tiêu chuẩn 48.65% của roulette Châu Âu.",
+    colorDesc: "So sánh tỷ lệ trúng màu sắc với mốc cơ bản 48.0%.",
     seriesTitle: "3) Dự Đoán Phân Vùng Bánh Xe (Series)",
-    seriesDesc: "Tỷ lệ trúng phân vùng Top series, Small series và Orphelins.",
+    seriesDesc: "Tỷ lệ trúng phân vùng Top series, Small series và Orphelins so với mốc 33.0%.",
     vectorTitle: "4) Vector Bánh Xe & Bản Đồ Phân Vùng",
-    vectorDesc: "Tỷ lệ trúng phân vùng theo chế độ chia hiện tại.",
+    vectorDesc: "Tỷ lệ trúng và Return phân vùng theo chế độ chiến lược (Next / History / Both).",
     finalTitle: "5) Dự Đoán Ma Trận Số Cuối",
-    finalDesc: "Tỷ lệ trúng mẫu số cuối 0-9.",
+    finalDesc: "Tỷ lệ trúng và Return mẫu số cuối 0-9.",
     pocketTitle: "6) Dự Đoán Khoảng Cách Hộc Bánh Xe",
-    pocketDesc: "Tỷ lệ trúng Top 3 bước dịch chuyển (0-18 bước).",
+    pocketDesc: "Tỷ lệ trúng và Return các bước dịch chuyển.",
     topNumsTitle: "7) Top Số Đề Xuất Cốt Lõi",
-    topNumsDesc: "Tỷ lệ trúng trực tiếp của 3 số đề xuất hàng đầu.",
+    topNumsDesc: "Tỷ lệ trúng trực tiếp và Return của 3 số đề xuất hàng đầu.",
     dozensTitle: "8) Tín Hiệu Chiến Lược Hàng & Cột",
-    dozensDesc: "Tỷ lệ trúng tín hiệu chiến lược Hàng (Dozens) và Cột (Columns).",
+    dozensDesc: "Tỷ lệ trúng và Return tín hiệu chiến lược Hàng (Dozens) và Cột (Columns).",
     statusAbove: "VƯỢT LÝ THUYẾT",
     statusBelow: "DƯỚI LÝ THUYẾT",
     baseline: "Cơ Bản Lý Thuyết",
@@ -319,117 +319,219 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return bets;
   };
 
-  // Section 1: Closed Numbers Backtest Stats
-  const closedStats = useMemo(() => {
-    let gamesPredicted = 0;
-    let gamesHit = 0;
-    let totalUnitsBet = 0;
-    let totalUnitsReturned = 0;
+  // Full Backtest Pass across all 8 Strategy Sections
+  const backtestStats = useMemo(() => {
+    let closedPredicted = 0, closedHits = 0, closedUnitsIn = 0, closedUnitsOut = 0;
 
-    if (spinHistory.length >= 2) {
-      for (let i = 1; i < spinHistory.length; i++) {
-        const histBefore = spinHistory.slice(0, i);
-        const winningNum = spinHistory[i];
-        const bets = calculateClosedBets(histBefore, betStrategyMode, neighbourDepth, closedLookback);
-
-        let roundBet = 0;
-        bets.forEach(u => { roundBet += u; });
-
-        if (roundBet > 0) {
-          gamesPredicted++;
-          totalUnitsBet += roundBet;
-          const winUnit = bets.get(winningNum) || 0;
-          if (winUnit > 0) {
-            gamesHit++;
-            totalUnitsReturned += (winUnit * 36);
-          }
-        }
-      }
-    }
-
-    const hitRatio = gamesPredicted > 0 ? (gamesHit / gamesPredicted) * 100 : 0;
-    const basicReturnRatio = neighbourDepth === 5 ? 29.73 : 18.92;
-    const netPL = totalUnitsReturned - totalUnitsBet;
-    const roi = totalUnitsBet > 0 ? (netPL / totalUnitsBet) * 100 : 0;
-
-    return {
-      gamesPredicted,
-      gamesHit,
-      hitRatio: Math.round(hitRatio * 10) / 10,
-      basicReturnRatio,
-      totalUnitsBet,
-      totalUnitsReturned,
-      netPL,
-      roi: Math.round(roi * 10) / 10,
-      isAboveBaseline: hitRatio >= basicReturnRatio,
-    };
-  }, [spinHistory, closedLookback, neighbourDepth, betStrategyMode]);
-
-  // Sections 2 to 8: Multi-Criteria Prediction Engine Backtests
-  const engineStats = useMemo(() => {
-    let colorOffered = 0, colorWins = 0;
-    let seriesOffered = 0, seriesWins = 0;
-    let sectorOffered = 0, sectorWins = 0;
-    let finalOffered = 0, finalWins = 0;
-    let pocketOffered = 0, pocketWins = 0;
-    let topOffered = 0, topWins = 0;
-    let dozensOffered = 0, dozensWins = 0;
+    let colorOffered = 0, colorWins = 0, colorUnitsIn = 0, colorUnitsOut = 0;
+    let seriesOffered = 0, seriesWins = 0, seriesUnitsIn = 0, seriesUnitsOut = 0;
+    let sectorOffered = 0, sectorWins = 0, sectorUnitsIn = 0, sectorUnitsOut = 0;
+    let finalOffered = 0, finalWins = 0, finalUnitsIn = 0, finalUnitsOut = 0;
+    let pocketOffered = 0, pocketWins = 0, pocketUnitsIn = 0, pocketUnitsOut = 0;
+    let topOffered = 0, topWins = 0, topUnitsIn = 0, topUnitsOut = 0;
+    let dozensOffered = 0, dozensWins = 0, dozensUnitsIn = 0, dozensUnitsOut = 0;
 
     const activeSectorMode = strategyConfig.vectorSectorAmount || sectorSplitMode;
+    const topSectorsCount = strategyConfig.vectorTopSectorsCount || 1;
+    const vectorRankingMode = strategyConfig.vectorRankingMode || 'next_probable';
 
     if (spinHistory.length >= 2) {
       for (let i = 1; i < spinHistory.length; i++) {
         const hist = spinHistory.slice(0, i);
         const winner = spinHistory[i];
-        const pred = getMultiCriteriaPrediction(hist, fiveDepths, activeSectorMode);
+
+        // 1) CLOSED NUMBERS
+        const closedBetsMap = calculateClosedBets(hist, betStrategyMode, neighbourDepth, closedLookback);
+        let roundClosedInput = 0;
+        closedBetsMap.forEach(u => { roundClosedInput += u; });
+        if (roundClosedInput > 0) {
+          closedPredicted++;
+          closedUnitsIn += roundClosedInput;
+          const winUnit = closedBetsMap.get(winner) || 0;
+          if (winUnit > 0) {
+            closedHits++;
+            closedUnitsOut += (winUnit * 36);
+          }
+        }
+
+        // 2) MULTI-CRITERIA PREDICTION ENGINE
+        const defaultDepths: FiveCriteriaDepths = fiveDepths || { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 };
+        const pred = getMultiCriteriaPrediction(hist, defaultDepths, activeSectorMode, strategyConfig);
         if (!pred) continue;
 
-        // 2) Colour
+        // 2) Colour Prediction (10u input per round, 20u return on hit)
         if (pred.color) {
           colorOffered++;
-          if (pred.color === NUMBER_COLORS[winner]) colorWins++;
+          colorUnitsIn += 10;
+          if (pred.color === NUMBER_COLORS[winner]) {
+            colorWins++;
+            colorUnitsOut += 20;
+          }
         }
 
-        // 3) Series
+        // 3) Wheel Series Prediction (Exact European roulette series payout logic)
         if (pred.series && pred.series !== 'none') {
+          const pSeries = (pred.series || '').toString().toLowerCase();
           seriesOffered++;
-          if (pred.series === getSeriesType(winner)) seriesWins++;
+          if (pSeries === 'top' || pSeries === 'voisins') {
+            // Voisins du Zéro: 9 units input
+            seriesUnitsIn += 9;
+            const voisinsNums = [0, 2, 3, 4, 7, 12, 15, 18, 21, 19, 22, 25, 26, 28, 29, 32, 35];
+            if (voisinsNums.includes(winner)) {
+              seriesWins++;
+              if ([0, 2, 3].includes(winner)) {
+                seriesUnitsOut += 24; // Trio 0/2/3 pays 24u
+              } else if ([25, 26, 28, 29].includes(winner)) {
+                seriesUnitsOut += 18; // Corner 25/26/28/29 pays 18u (2u bet * 9)
+              } else {
+                seriesUnitsOut += 18; // Splits pay 18u
+              }
+            }
+          } else if (pSeries === 'small' || pSeries === 'tiers') {
+            // Tiers du Cyber: 6 units input
+            seriesUnitsIn += 6;
+            const tiersNums = [5, 8, 10, 11, 13, 16, 23, 24, 27, 30, 33, 36];
+            if (tiersNums.includes(winner)) {
+              seriesWins++;
+              seriesUnitsOut += 18; // Splits pay 18u
+            }
+          } else if (pSeries === 'middle' || pSeries === 'orphelins') {
+            // Orphelins: 5 units input
+            seriesUnitsIn += 5;
+            const orphelinsNums = [1, 6, 9, 14, 17, 20, 31, 34];
+            if (orphelinsNums.includes(winner)) {
+              seriesWins++;
+              if (winner === 1 || winner === 17) {
+                seriesUnitsOut += 36; // Straight / double split pays 36u
+              } else {
+                seriesUnitsOut += 18; // Splits pay 18u
+              }
+            }
+          } else if (pSeries === 'zero') {
+            // Zero Game: 4 units input
+            seriesUnitsIn += 4;
+            const zeroNums = [0, 3, 12, 15, 26, 32, 35];
+            if (zeroNums.includes(winner)) {
+              seriesWins++;
+              if (winner === 26) {
+                seriesUnitsOut += 36; // Straight 26 pays 36u
+              } else {
+                seriesUnitsOut += 18; // Splits pay 18u
+              }
+            }
+          }
         }
 
-        // 4) Sector Map / Wheel Vector
+        // 4) Wheel Vector & Sector Map (Evaluates Next Probable / History / Both)
         if (pred.sector) {
-          sectorOffered++;
-          if (pred.sector.numbers.includes(winner)) sectorWins++;
+          let targetSectors: { id: string | number; name: string; numbers: number[] }[] = [];
+          if (vectorRankingMode === 'both') {
+            const nextSecs = (pred.sector.topNextSectors || []).slice(0, topSectorsCount);
+            const histSecs = (pred.sector.topHistorySectors || []).slice(0, topSectorsCount);
+            const mergedMap = new Map<string | number, { id: string | number; name: string; numbers: number[] }>();
+            nextSecs.forEach(s => mergedMap.set(s.id, s));
+            histSecs.forEach(s => mergedMap.set(s.id, s));
+            targetSectors = Array.from(mergedMap.values());
+          } else if (vectorRankingMode === 'history_frequency') {
+            targetSectors = (pred.sector.topHistorySectors || []).slice(0, topSectorsCount);
+          } else {
+            targetSectors = (pred.sector.topNextSectors || []).slice(0, topSectorsCount);
+          }
+
+          const coveredNumbers = Array.from(new Set(targetSectors.flatMap(s => s.numbers)));
+          if (coveredNumbers.length > 0) {
+            sectorOffered++;
+            sectorUnitsIn += coveredNumbers.length;
+            if (coveredNumbers.includes(winner)) {
+              sectorWins++;
+              sectorUnitsOut += 36;
+            }
+          }
         }
 
-        // 5) Final Matrix
+        // 5) Final Matrix Digit Prediction
         if (pred.finalDigits && pred.finalDigits.length > 0) {
-          finalOffered++;
-          if (pred.finalDigits.includes(winner % 10)) finalWins++;
+          const count = strategyConfig.finalDigitsCount || 3;
+          const chosenFinals = pred.finalDigits.slice(0, count);
+          const numbersForFinals = ROULETTE_NUMBERS.filter(n => chosenFinals.includes(n % 10));
+          if (numbersForFinals.length > 0) {
+            finalOffered++;
+            finalUnitsIn += numbersForFinals.length;
+            if (chosenFinals.includes(winner % 10)) {
+              finalWins++;
+              finalUnitsOut += 36;
+            }
+          }
         }
 
-        // 6) Pocket Distance Steps
-        if (pred.pocket) {
-          pocketOffered++;
-          if (pred.pocket.topSteps.some(s => s.cwTarget === winner || s.acwTarget === winner)) pocketWins++;
+        // 6) Pockets Distance Step Prediction
+        if (pred.pocket && pred.pocket.topSteps) {
+          const topRanks = strategyConfig.pocketTopRanks || 3;
+          const pocketTargets = new Set<number>();
+          pred.pocket.topSteps.slice(0, topRanks).forEach(s => {
+            pocketTargets.add(s.cwTarget);
+            pocketTargets.add(s.acwTarget);
+          });
+          if (strategyConfig.pocketNextChanceEnabled) {
+            pocketTargets.add(pred.pocket.cwTarget);
+            pocketTargets.add(pred.pocket.acwTarget);
+          }
+          if (pocketTargets.size > 0) {
+            pocketOffered++;
+            pocketUnitsIn += pocketTargets.size;
+            if (pocketTargets.has(winner)) {
+              pocketWins++;
+              pocketUnitsOut += 36;
+            }
+          }
         }
 
-        // 7) Top Numbers
+        // 7) Top Core Recommended Numbers (Top 3 core = 3u input)
         if (pred.topNumbers && pred.topNumbers.length > 0) {
+          const top3 = pred.topNumbers.slice(0, 3).map(tn => tn.num);
           topOffered++;
-          if (pred.topNumbers.some(tn => tn.num === winner)) topWins++;
+          topUnitsIn += top3.length;
+          if (top3.includes(winner)) {
+            topWins++;
+            topUnitsOut += 36;
+          }
         }
 
-        // 8) Dozens & Columns Strategic Signal
-        if (winner !== 0) {
-          dozensOffered++;
+        // 8) Dozens and Columns Strategic Signals (2 Dozens 20u + 2 Cols 20u = 40u input)
+        dozensOffered++;
+        dozensUnitsIn += 40;
+
+        if (winner === 0) {
+          // Zero loses both dozen & column bets
+        } else {
           const winningDozen = winner <= 12 ? 1 : winner <= 24 ? 2 : 3;
           const winningCol = winner % 3 === 1 ? 1 : winner % 3 === 2 ? 2 : 3;
-          const topDozen = pred.topNumbers[0] ? (pred.topNumbers[0].num <= 12 ? 1 : pred.topNumbers[0].num <= 24 ? 2 : 3) : 1;
-          const topCol = pred.topNumbers[0] ? (pred.topNumbers[0].num % 3 === 1 ? 1 : pred.topNumbers[0].num % 3 === 2 ? 2 : 3) : 1;
-          if (winningDozen === topDozen || winningCol === topCol) {
+
+          const topNums = pred.topNumbers || [];
+          const dozenCounts = new Map<number, number>();
+          const colCounts = new Map<number, number>();
+          topNums.forEach(tn => {
+            const d = tn.num === 0 ? 0 : tn.num <= 12 ? 1 : tn.num <= 24 ? 2 : 3;
+            const c = tn.num === 0 ? 0 : tn.num % 3 === 1 ? 1 : tn.num % 3 === 2 ? 2 : 3;
+            if (d > 0) dozenCounts.set(d, (dozenCounts.get(d) || 0) + 1);
+            if (c > 0) colCounts.set(c, (colCounts.get(c) || 0) + 1);
+          });
+
+          const sortedDozens = [1, 2, 3].sort((a, b) => (dozenCounts.get(b) || 0) - (dozenCounts.get(a) || 0));
+          const sortedCols = [1, 2, 3].sort((a, b) => (colCounts.get(b) || 0) - (colCounts.get(a) || 0));
+
+          const predictedDozens = sortedDozens.slice(0, 2);
+          const predictedCols = sortedCols.slice(0, 2);
+
+          const dozenHit = predictedDozens.includes(winningDozen);
+          const colHit = predictedCols.includes(winningCol);
+
+          if (dozenHit || colHit) {
             dozensWins++;
           }
+
+          if (dozenHit) dozensUnitsOut += 30; // 10u input on winning dozen pays 30u total
+          if (colHit) dozensUnitsOut += 30;   // 10u input on winning column pays 30u total
         }
       }
     }
@@ -437,88 +539,128 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const calcHit = (wins: number, total: number) => total > 0 ? Math.round((wins / total) * 1000) / 10 : 0;
 
     const colorRate = calcHit(colorWins, colorOffered);
-    const colorBaseline = 48.65;
+    const colorBaseline = 48.0; // User rule: <48% is red, >=48% is green
 
     const seriesRate = calcHit(seriesWins, seriesOffered);
-    const seriesBaseline = 32.43;
+    const seriesBaseline = 33.0; // User rule: <33% is red, >=33% is green
 
     const sectorRate = calcHit(sectorWins, sectorOffered);
     const numSectors = parseInt(activeSectorMode) || 9;
     const sectorBaseline = Math.round((100 / numSectors) * 10) / 10;
 
     const finalRate = calcHit(finalWins, finalOffered);
-    const finalBaseline = Math.round((strategyConfig.finalDigitsCount / 10) * 1000) / 10;
+    const finalBaseline = Math.round(((strategyConfig.finalDigitsCount || 3) / 10) * 1000) / 10;
 
     const pocketRate = calcHit(pocketWins, pocketOffered);
-    const pocketBaseline = Math.round(((strategyConfig.pocketTopRanks * 2) / 37) * 1000) / 10;
+    const pocketBaseline = Math.round((((strategyConfig.pocketTopRanks || 3) * 2) / 37) * 1000) / 10;
 
     const topRate = calcHit(topWins, topOffered);
-    const topBaseline = 8.11;
+    const topBaseline = 8.1;
 
     const dozensRate = calcHit(dozensWins, dozensOffered);
-    const dozensBaseline = 64.86; // Double Dozen / Col = 24/37 = 64.86%
+    const dozensBaseline = 64.9;
+
+    const totalUnitsInAll = closedUnitsIn + colorUnitsIn + seriesUnitsIn + sectorUnitsIn + finalUnitsIn + pocketUnitsIn + topUnitsIn + dozensUnitsIn;
+    const totalUnitsOutAll = closedUnitsOut + colorUnitsOut + seriesUnitsOut + sectorUnitsOut + finalUnitsOut + pocketUnitsOut + topUnitsOut + dozensUnitsOut;
+    const netReturnAll = totalUnitsOutAll - totalUnitsInAll;
+    const combinedROI = totalUnitsInAll > 0 ? Math.round(((netReturnAll / totalUnitsInAll) * 100) * 10) / 10 : 0;
+
+    const totalOfferedAll = closedPredicted + colorOffered + seriesOffered + sectorOffered + finalOffered + pocketOffered + topOffered + dozensOffered;
+    const totalWinsAll = closedHits + colorWins + seriesWins + sectorWins + finalWins + pocketWins + topWins + dozensWins;
+    const combinedAccuracy = totalOfferedAll > 0 ? Math.round((totalWinsAll / totalOfferedAll) * 1000) / 10 : 0;
 
     return {
-      color: { offered: colorOffered, wins: colorWins, rate: colorRate, baseline: colorBaseline, isAbove: colorRate >= colorBaseline },
-      series: { offered: seriesOffered, wins: seriesWins, rate: seriesRate, baseline: seriesBaseline, isAbove: seriesRate >= seriesBaseline },
-      sector: { offered: sectorOffered, wins: sectorWins, rate: sectorRate, baseline: sectorBaseline, isAbove: sectorRate >= sectorBaseline },
-      final: { offered: finalOffered, wins: finalWins, rate: finalRate, baseline: finalBaseline, isAbove: finalRate >= finalBaseline },
-      pocket: { offered: pocketOffered, wins: pocketWins, rate: pocketRate, baseline: pocketBaseline, isAbove: pocketRate >= pocketBaseline },
-      top: { offered: topOffered, wins: topWins, rate: topRate, baseline: topBaseline, isAbove: topRate >= topBaseline },
-      dozens: { offered: dozensOffered, wins: dozensWins, rate: dozensRate, baseline: dozensBaseline, isAbove: dozensRate >= dozensBaseline },
+      overview: {
+        totalUnitsIn: totalUnitsInAll,
+        totalUnitsOut: totalUnitsOutAll,
+        netReturn: netReturnAll,
+        combinedROI,
+        totalOffered: totalOfferedAll,
+        totalWins: totalWinsAll,
+        combinedAccuracy,
+      },
+      closed: {
+        predicted: closedPredicted,
+        hits: closedHits,
+        unitsIn: closedUnitsIn,
+        unitsOut: closedUnitsOut,
+        net: closedUnitsOut - closedUnitsIn,
+        rate: closedPredicted > 0 ? Math.round((closedHits / closedPredicted) * 1000) / 10 : 0,
+        baseline: neighbourDepth === 5 ? 29.7 : 18.9,
+        isAbove: (closedPredicted > 0 ? (closedHits / closedPredicted) * 100 : 0) >= (neighbourDepth === 5 ? 29.7 : 18.9),
+      },
+      color: {
+        offered: colorOffered,
+        wins: colorWins,
+        unitsIn: colorUnitsIn,
+        unitsOut: colorUnitsOut,
+        net: colorUnitsOut - colorUnitsIn,
+        rate: colorRate,
+        baseline: colorBaseline,
+        isAbove: colorRate >= colorBaseline,
+      },
+      series: {
+        offered: seriesOffered,
+        wins: seriesWins,
+        unitsIn: seriesUnitsIn,
+        unitsOut: seriesUnitsOut,
+        net: seriesUnitsOut - seriesUnitsIn,
+        rate: seriesRate,
+        baseline: seriesBaseline,
+        isAbove: seriesRate >= seriesBaseline,
+      },
+      sector: {
+        offered: sectorOffered,
+        wins: sectorWins,
+        unitsIn: sectorUnitsIn,
+        unitsOut: sectorUnitsOut,
+        net: sectorUnitsOut - sectorUnitsIn,
+        rate: sectorRate,
+        baseline: sectorBaseline,
+        isAbove: sectorRate >= sectorBaseline,
+      },
+      final: {
+        offered: finalOffered,
+        wins: finalWins,
+        unitsIn: finalUnitsIn,
+        unitsOut: finalUnitsOut,
+        net: finalUnitsOut - finalUnitsIn,
+        rate: finalRate,
+        baseline: finalBaseline,
+        isAbove: finalRate >= finalBaseline,
+      },
+      pocket: {
+        offered: pocketOffered,
+        wins: pocketWins,
+        unitsIn: pocketUnitsIn,
+        unitsOut: pocketUnitsOut,
+        net: pocketUnitsOut - pocketUnitsIn,
+        rate: pocketRate,
+        baseline: pocketBaseline,
+        isAbove: pocketRate >= pocketBaseline,
+      },
+      top: {
+        offered: topOffered,
+        wins: topWins,
+        unitsIn: topUnitsIn,
+        unitsOut: topUnitsOut,
+        net: topUnitsOut - topUnitsIn,
+        rate: topRate,
+        baseline: topBaseline,
+        isAbove: topRate >= topBaseline,
+      },
+      dozens: {
+        offered: dozensOffered,
+        wins: dozensWins,
+        unitsIn: dozensUnitsIn,
+        unitsOut: dozensUnitsOut,
+        net: dozensUnitsOut - dozensUnitsIn,
+        rate: dozensRate,
+        baseline: dozensBaseline,
+        isAbove: dozensRate >= dozensBaseline,
+      },
     };
-  }, [spinHistory, fiveDepths, sectorSplitMode, strategyConfig]);
-
-  // Combined Results Math Across All Active Strategy Predictions
-  const combinedStats = useMemo(() => {
-    const closedBet = closedStats.totalUnitsBet;
-    const closedReturn = closedStats.totalUnitsReturned;
-
-    const colorBet = engineStats.color.offered * 1;
-    const colorReturn = engineStats.color.wins * 2; // 2:1 payout
-
-    const seriesBet = engineStats.series.offered * 12;
-    const seriesReturn = engineStats.series.wins * 36;
-
-    const activeSectorMode = strategyConfig.vectorSectorAmount || sectorSplitMode;
-    const sectorUnits = Math.round(37 / (parseInt(activeSectorMode) || 9));
-    const sectorBet = engineStats.sector.offered * sectorUnits;
-    const sectorReturn = engineStats.sector.wins * 36;
-
-    const finalUnits = (strategyConfig.finalDigitsCount || 3) * 3;
-    const finalBet = engineStats.final.offered * finalUnits;
-    const finalReturn = engineStats.final.wins * 36;
-
-    const pocketUnits = (strategyConfig.pocketTopRanks || 3) * 2;
-    const pocketBet = engineStats.pocket.offered * pocketUnits;
-    const pocketReturn = engineStats.pocket.wins * 36;
-
-    const topBet = engineStats.top.offered * 3;
-    const topReturn = engineStats.top.wins * 36;
-
-    // Dozens & Columns: 3:1 payout (pays 3 units return on a 2 unit double-dozen/col bet)
-    const dozensBet = engineStats.dozens.offered * 2;
-    const dozensReturn = engineStats.dozens.wins * 3;
-
-    const totalBet = closedBet + colorBet + seriesBet + sectorBet + finalBet + pocketBet + topBet + dozensBet;
-    const totalReturn = closedReturn + colorReturn + seriesReturn + sectorReturn + finalReturn + pocketReturn + topReturn + dozensReturn;
-    const netResultPoints = totalReturn - totalBet;
-    const combinedROI = totalBet > 0 ? (netResultPoints / totalBet) * 100 : 0;
-
-    const totalOffered = closedStats.gamesPredicted + engineStats.color.offered + engineStats.series.offered + engineStats.sector.offered + engineStats.final.offered + engineStats.pocket.offered + engineStats.top.offered + engineStats.dozens.offered;
-    const totalWins = closedStats.gamesHit + engineStats.color.wins + engineStats.series.wins + engineStats.sector.wins + engineStats.final.wins + engineStats.pocket.wins + engineStats.top.wins + engineStats.dozens.wins;
-    const combinedAccuracy = totalOffered > 0 ? Math.round((totalWins / totalOffered) * 1000) / 10 : 0;
-
-    return {
-      totalBet,
-      totalReturn,
-      netResultPoints,
-      combinedROI: Math.round(combinedROI * 10) / 10,
-      totalWins,
-      totalOffered,
-      combinedAccuracy,
-    };
-  }, [closedStats, engineStats, sectorSplitMode, strategyConfig]);
+  }, [spinHistory, fiveDepths, sectorSplitMode, strategyConfig, neighbourDepth, closedLookback, betStrategyMode]);
 
   return (
     <div className="animate-fade-in pb-16 space-y-4">
@@ -566,16 +708,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-md">
-          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">Combined Accuracy</span>
-          <div className={`text-xl font-black mt-1 ${combinedStats.combinedAccuracy >= 30 ? 'text-green-500' : 'text-red-500'}`}>
-            {combinedStats.combinedAccuracy}%
+          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">{t.overallAccuracy}</span>
+          <div className={`text-xl font-black mt-1 ${backtestStats.overview.combinedAccuracy >= 30 ? 'text-green-500' : 'text-red-500'}`}>
+            {backtestStats.overview.combinedAccuracy}%
           </div>
         </div>
 
         <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-md">
-          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">Result Point (ROI)</span>
-          <div className={`text-xl font-black mt-1 ${combinedStats.netResultPoints >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {combinedStats.netResultPoints >= 0 ? `+${combinedStats.netResultPoints}` : combinedStats.netResultPoints} <span className="text-xs font-bold text-gray-400">({combinedStats.combinedROI >= 0 ? `+${combinedStats.combinedROI}%` : `${combinedStats.combinedROI}%`})</span>
+          <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">{t.netReturnUnits}</span>
+          <div className={`text-lg font-black mt-1 ${backtestStats.overview.netReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {backtestStats.overview.totalUnitsIn} in / {backtestStats.overview.totalUnitsOut} out
+            <span className="text-xs block font-extrabold mt-0.5">
+              {backtestStats.overview.netReturn >= 0 ? `+${backtestStats.overview.netReturn}` : backtestStats.overview.netReturn} ({backtestStats.overview.combinedROI >= 0 ? `+${backtestStats.overview.combinedROI}%` : `${backtestStats.overview.combinedROI}%`})
+            </span>
           </div>
         </div>
       </div>
@@ -625,7 +770,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </button>
             </div>
 
-            {/* Progression Mode 111 / 123 / 235 */}
+            {/* Input Progression Mode 111 / 123 / 235 */}
             <div className="flex bg-zinc-800 rounded-xl p-1 border border-gray-700/60">
               {(['111', '123', '235'] as const).map(m => (
                 <button
@@ -649,7 +794,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="bg-zinc-800/80 p-3 rounded-2xl border border-gray-700/50">
             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{t.gamesPredicted} / {t.gamesHit}</span>
             <div className="text-base font-black text-white mt-1">
-              {closedStats.gamesHit} / {closedStats.gamesPredicted}
+              {backtestStats.closed.hits} hit / {backtestStats.closed.predicted} rounds
             </div>
             <div className="text-[9px] font-bold text-gray-500 mt-0.5">Tested across {spinHistory.length} spins</div>
           </div>
@@ -657,30 +802,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="bg-zinc-800/80 p-3 rounded-2xl border border-gray-700/50">
             <div className="flex justify-between items-center">
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{t.hitRatio}</span>
-              <span className={`px-1.5 py-0.5 text-[8px] font-black rounded ${closedStats.isAboveBaseline ? 'bg-green-500/20 text-green-400 border border-green-500/40' : 'bg-red-500/20 text-red-400 border border-red-500/40'}`}>
-                {closedStats.isAboveBaseline ? t.statusAbove : t.statusBelow}
+              <span className={`px-1.5 py-0.5 text-[8px] font-black rounded ${backtestStats.closed.isAbove ? 'bg-green-500/20 text-green-400 border border-green-500/40' : 'bg-red-500/20 text-red-400 border border-red-500/40'}`}>
+                {backtestStats.closed.isAbove ? t.statusAbove : t.statusBelow}
               </span>
             </div>
-            <div className={`text-2xl font-black mt-1 ${closedStats.isAboveBaseline ? 'text-green-500' : 'text-red-500'}`}>
-              {closedStats.hitRatio}%
+            <div className={`text-2xl font-black mt-1 ${backtestStats.closed.isAbove ? 'text-green-500' : 'text-red-500'}`}>
+              {backtestStats.closed.rate}%
             </div>
-            <div className="text-[9px] font-bold text-gray-400 mt-0.5">{t.baseline}: <strong className="text-white">{closedStats.basicReturnRatio}%</strong></div>
+            <div className="text-[9px] font-bold text-gray-400 mt-0.5">{t.baseline}: <strong className="text-white">{backtestStats.closed.baseline}%</strong></div>
           </div>
 
           <div className="bg-zinc-800/80 p-3 rounded-2xl border border-gray-700/50">
-            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{t.unitsBet} vs {t.unitsReturned}</span>
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{t.unitsInput} vs {t.unitsReturned}</span>
             <div className="text-base font-black text-white mt-1">
-              {closedStats.totalUnitsBet} <span className="text-gray-500 font-normal">in</span> / {closedStats.totalUnitsReturned} <span className="text-gold font-normal">out</span>
+              {backtestStats.closed.unitsIn} <span className="text-gray-500 font-normal">in</span> / {backtestStats.closed.unitsOut} <span className="text-gold font-normal">out</span>
             </div>
-            <div className="text-[9px] font-bold text-gray-400 mt-0.5">36:1 Single payout math</div>
+            <div className="text-[9px] font-bold text-gray-400 mt-0.5">Unit Flow</div>
           </div>
 
           <div className="bg-zinc-800/80 p-3 rounded-2xl border border-gray-700/50">
-            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{t.netPL} & {t.roi}</span>
-            <div className={`text-2xl font-black mt-1 ${closedStats.netPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {closedStats.netPL >= 0 ? `+${closedStats.netPL}` : closedStats.netPL} <span className="text-xs">({closedStats.roi}%)</span>
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{t.returnCount}</span>
+            <div className={`text-2xl font-black mt-1 ${backtestStats.closed.net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {backtestStats.closed.net >= 0 ? `+${backtestStats.closed.net}` : backtestStats.closed.net}
             </div>
-            <div className="text-[9px] font-bold text-gray-400 mt-0.5">Strategy Mode: {betStrategyMode}</div>
+            <div className="text-[9px] font-bold text-gray-400 mt-0.5">Mode: {betStrategyMode}</div>
           </div>
         </div>
       </div>
@@ -692,18 +837,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon="🎨"
           title={t.colorTitle}
           description={t.colorDesc}
-          offered={engineStats.color.offered}
-          wins={engineStats.color.wins}
-          rate={engineStats.color.rate}
-          baseline={engineStats.color.baseline}
-          isAbove={engineStats.color.isAbove}
+          offered={backtestStats.color.offered}
+          wins={backtestStats.color.wins}
+          rate={backtestStats.color.rate}
+          baseline={backtestStats.color.baseline}
+          isAbove={backtestStats.color.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={1}
-          payoutMultiplier={2}
-          unitLabel="Red/Black"
+          unitsIn={backtestStats.color.unitsIn}
+          unitsOut={backtestStats.color.unitsOut}
+          netUnits={backtestStats.color.net}
         />
 
         {/* 3) Series Prediction */}
@@ -711,37 +854,80 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon="🧭"
           title={t.seriesTitle}
           description={t.seriesDesc}
-          offered={engineStats.series.offered}
-          wins={engineStats.series.wins}
-          rate={engineStats.series.rate}
-          baseline={engineStats.series.baseline}
-          isAbove={engineStats.series.isAbove}
+          offered={backtestStats.series.offered}
+          wins={backtestStats.series.wins}
+          rate={backtestStats.series.rate}
+          baseline={backtestStats.series.baseline}
+          isAbove={backtestStats.series.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={12}
-          payoutMultiplier={36}
-          unitLabel="12/37 Series Track"
+          unitsIn={backtestStats.series.unitsIn}
+          unitsOut={backtestStats.series.unitsOut}
+          netUnits={backtestStats.series.net}
         />
 
-        {/* 4) Wheel Vector / Sector Prediction */}
+        {/* 4) Wheel Vector & Sector Map */}
         <StatCriterionCard
           icon="🎯"
           title={t.vectorTitle}
           description={t.vectorDesc}
-          offered={engineStats.sector.offered}
-          wins={engineStats.sector.wins}
-          rate={engineStats.sector.rate}
-          baseline={engineStats.sector.baseline}
-          isAbove={engineStats.sector.isAbove}
+          offered={backtestStats.sector.offered}
+          wins={backtestStats.sector.wins}
+          rate={backtestStats.sector.rate}
+          baseline={backtestStats.sector.baseline}
+          isAbove={backtestStats.sector.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={Math.round(37 / (parseInt(sectorSplitMode) || 9))}
-          payoutMultiplier={36}
-          unitLabel={`${sectorSplitMode}S Sector`}
+          unitsIn={backtestStats.sector.unitsIn}
+          unitsOut={backtestStats.sector.unitsOut}
+          netUnits={backtestStats.sector.net}
+          controls={
+            <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-gray-800/60 mt-1">
+              <div className="flex items-center gap-0.5 bg-zinc-800 p-0.5 rounded-lg border border-gray-700/60">
+                <span className="text-[8px] font-black text-gray-400 uppercase px-1">Sectors:</span>
+                {(['4', '6', '8', '9', '12'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => updatePartial({ vectorSectorAmount: s })}
+                    className={`px-1.5 py-0.5 text-[8px] font-black rounded transition-all ${
+                      (strategyConfig.vectorSectorAmount || sectorSplitMode) === s ? 'bg-gold text-black shadow-xs' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {s}S
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-0.5 bg-zinc-800 p-0.5 rounded-lg border border-gray-700/60">
+                <span className="text-[8px] font-black text-gray-400 uppercase px-1">Top:</span>
+                {([1, 2, 3] as const).map(cnt => (
+                  <button
+                    key={cnt}
+                    onClick={() => updatePartial({ vectorTopSectorsCount: cnt })}
+                    className={`px-1.5 py-0.5 text-[8px] font-black rounded transition-all ${
+                      (strategyConfig.vectorTopSectorsCount || 1) === cnt ? 'bg-gold text-black shadow-xs' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {cnt}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-0.5 bg-zinc-800 p-0.5 rounded-lg border border-gray-700/60">
+                {(['next_probable', 'history_frequency', 'both'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => updatePartial({ vectorRankingMode: m })}
+                    className={`px-1.5 py-0.5 text-[8px] font-black rounded transition-all ${
+                      (strategyConfig.vectorRankingMode || 'next_probable') === m ? 'bg-emerald-500 text-black font-black' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {m === 'next_probable' ? 'Next' : m === 'history_frequency' ? 'Hist' : 'Both'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          }
         />
 
         {/* 5) Final Matrix Prediction */}
@@ -749,18 +935,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon="🔢"
           title={t.finalTitle}
           description={t.finalDesc}
-          offered={engineStats.final.offered}
-          wins={engineStats.final.wins}
-          rate={engineStats.final.rate}
-          baseline={engineStats.final.baseline}
-          isAbove={engineStats.final.isAbove}
+          offered={backtestStats.final.offered}
+          wins={backtestStats.final.wins}
+          rate={backtestStats.final.rate}
+          baseline={backtestStats.final.baseline}
+          isAbove={backtestStats.final.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={(strategyConfig.finalDigitsCount || 3) * 3}
-          payoutMultiplier={36}
-          unitLabel={`${strategyConfig.finalDigitsCount || 3} Digits (${(strategyConfig.finalDigitsCount || 3) * 3}#)`}
+          unitsIn={backtestStats.final.unitsIn}
+          unitsOut={backtestStats.final.unitsOut}
+          netUnits={backtestStats.final.net}
+          controls={
+            <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-gray-800/60 mt-1">
+              <div className="flex items-center gap-0.5 bg-zinc-800 p-0.5 rounded-lg border border-gray-700/60">
+                <span className="text-[8px] font-black text-gray-400 uppercase px-1">Final Digits:</span>
+                {([2, 3, 4] as const).map(cnt => (
+                  <button
+                    key={cnt}
+                    onClick={() => updatePartial({ finalDigitsCount: cnt })}
+                    className={`px-2 py-0.5 text-[8px] font-black rounded transition-all ${
+                      (strategyConfig.finalDigitsCount || 3) === cnt ? 'bg-gold text-black shadow-xs' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {cnt} Digits
+                  </button>
+                ))}
+              </div>
+            </div>
+          }
         />
 
         {/* 6) Pockets Distance Step Prediction */}
@@ -768,18 +970,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon="📏"
           title={t.pocketTitle}
           description={t.pocketDesc}
-          offered={engineStats.pocket.offered}
-          wins={engineStats.pocket.wins}
-          rate={engineStats.pocket.rate}
-          baseline={engineStats.pocket.baseline}
-          isAbove={engineStats.pocket.isAbove}
+          offered={backtestStats.pocket.offered}
+          wins={backtestStats.pocket.wins}
+          rate={backtestStats.pocket.rate}
+          baseline={backtestStats.pocket.baseline}
+          isAbove={backtestStats.pocket.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={(strategyConfig.pocketTopRanks || 3) * 2}
-          payoutMultiplier={36}
-          unitLabel={`${strategyConfig.pocketTopRanks || 3} Steps (${(strategyConfig.pocketTopRanks || 3) * 2}#)`}
+          unitsIn={backtestStats.pocket.unitsIn}
+          unitsOut={backtestStats.pocket.unitsOut}
+          netUnits={backtestStats.pocket.net}
+          controls={
+            <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-gray-800/60 mt-1">
+              <div className="flex items-center gap-0.5 bg-zinc-800 p-0.5 rounded-lg border border-gray-700/60">
+                <span className="text-[8px] font-black text-gray-400 uppercase px-1">Top Ranks:</span>
+                {([1, 2, 3, 4, 5] as const).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => updatePartial({ pocketTopRanks: r })}
+                    className={`px-1.5 py-0.5 text-[8px] font-black rounded transition-all ${
+                      (strategyConfig.pocketTopRanks || 3) === r ? 'bg-gold text-black shadow-xs' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    R{r}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => updatePartial({ pocketNextChanceEnabled: !strategyConfig.pocketNextChanceEnabled })}
+                className={`px-2 py-0.5 text-[8px] font-black rounded-lg border transition-all ${
+                  strategyConfig.pocketNextChanceEnabled
+                    ? 'bg-blue-600/30 text-blue-300 border-blue-500/50'
+                    : 'bg-zinc-800 text-gray-400 border-gray-700/60'
+                }`}
+              >
+                {strategyConfig.pocketNextChanceEnabled ? '✓ Next Chance' : '+ Next Chance'}
+              </button>
+            </div>
+          }
         />
 
         {/* 7) Top Core Recommended Numbers */}
@@ -787,18 +1016,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon="⭐"
           title={t.topNumsTitle}
           description={t.topNumsDesc}
-          offered={engineStats.top.offered}
-          wins={engineStats.top.wins}
-          rate={engineStats.top.rate}
-          baseline={engineStats.top.baseline}
-          isAbove={engineStats.top.isAbove}
+          offered={backtestStats.top.offered}
+          wins={backtestStats.top.wins}
+          rate={backtestStats.top.rate}
+          baseline={backtestStats.top.baseline}
+          isAbove={backtestStats.top.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={3}
-          payoutMultiplier={36}
-          unitLabel="Top 3 Core (3#)"
+          unitsIn={backtestStats.top.unitsIn}
+          unitsOut={backtestStats.top.unitsOut}
+          netUnits={backtestStats.top.net}
         />
 
         {/* 8) Dozens & Columns Strategic Signals */}
@@ -806,18 +1033,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon="📊"
           title={t.dozensTitle}
           description={t.dozensDesc}
-          offered={engineStats.dozens.offered}
-          wins={engineStats.dozens.wins}
-          rate={engineStats.dozens.rate}
-          baseline={engineStats.dozens.baseline}
-          isAbove={engineStats.dozens.isAbove}
+          offered={backtestStats.dozens.offered}
+          wins={backtestStats.dozens.wins}
+          rate={backtestStats.dozens.rate}
+          baseline={backtestStats.dozens.baseline}
+          isAbove={backtestStats.dozens.isAbove}
           statusAbove={t.statusAbove}
           statusBelow={t.statusBelow}
-          baselineLabel={t.baseline}
-          actualLabel={t.actual}
-          targetUnits={2}
-          payoutMultiplier={3}
-          unitLabel="Double Dozen/Col (3:1)"
+          unitsIn={backtestStats.dozens.unitsIn}
+          unitsOut={backtestStats.dozens.unitsOut}
+          netUnits={backtestStats.dozens.net}
         />
       </div>
     </div>
@@ -835,11 +1060,10 @@ interface StatCriterionCardProps {
   isAbove: boolean;
   statusAbove: string;
   statusBelow: string;
-  baselineLabel: string;
-  actualLabel: string;
-  targetUnits: number;
-  payoutMultiplier: number;
-  unitLabel: string;
+  unitsIn: number;
+  unitsOut: number;
+  netUnits: number;
+  controls?: React.ReactNode;
 }
 
 const StatCriterionCard: React.FC<StatCriterionCardProps> = ({
@@ -853,22 +1077,17 @@ const StatCriterionCard: React.FC<StatCriterionCardProps> = ({
   isAbove,
   statusAbove,
   statusBelow,
-  targetUnits,
-  payoutMultiplier,
-  unitLabel,
+  unitsIn,
+  unitsOut,
+  netUnits,
+  controls,
 }) => {
-  const totalBetUnits = offered * targetUnits;
-  const totalReturnUnits = wins * payoutMultiplier;
-  const netUnits = totalReturnUnits - totalBetUnits;
-  const roi = totalBetUnits > 0 ? ((netUnits / totalBetUnits) * 100).toFixed(1) : '0.0';
-  const roiNum = parseFloat(roi);
-
   return (
-    <div className="bg-zinc-900 p-3 rounded-2xl border border-gray-800 shadow-lg space-y-2 flex flex-col justify-between">
+    <div className="bg-zinc-900 p-3.5 rounded-2xl border border-gray-800 shadow-lg space-y-2 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm">{icon}</span>
+            <span className="text-base">{icon}</span>
             <h3 className="text-xs font-black text-white uppercase tracking-wider">{title}</h3>
           </div>
           <span
@@ -882,33 +1101,37 @@ const StatCriterionCard: React.FC<StatCriterionCardProps> = ({
           </span>
         </div>
         <p className="text-[9px] text-gray-400 font-medium mt-0.5 line-clamp-1">{description}</p>
+        {controls}
       </div>
 
-      {/* Compact Metrics Strip */}
-      <div className="bg-zinc-950/80 p-2 rounded-xl border border-gray-800/80 space-y-1.5">
-        <div className="flex items-center justify-between text-[10px] font-black">
-          <span className="text-gray-400">Targets: <strong className="text-gold">{targetUnits}#</strong> <span className="text-gray-500 font-normal">({unitLabel})</span></span>
-          <span className="text-gray-400">Payout: <strong className="text-amber-300">{payoutMultiplier}:1</strong></span>
+      {/* Two-Square Metrics Display: Left = Hit Rate, Right = Return Count */}
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        {/* Left Square: Hit Rate */}
+        <div className="bg-zinc-950/90 p-2.5 rounded-xl border border-gray-800/80 flex flex-col justify-between">
+          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Hit Rate</span>
+          <div className="my-1">
+            <div className={`text-xl font-black ${isAbove ? 'text-green-400' : 'text-red-400'}`}>
+              {rate}%
+            </div>
+            <div className="text-[9px] font-bold text-gray-300">
+              {wins} hit / {offered} round
+            </div>
+          </div>
+          <div className="text-[8px] text-gray-500 font-semibold">vs {baseline}% base</div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-800/60 text-[10px]">
-          <div className="bg-zinc-900/90 p-1.5 rounded-lg border border-gray-800 flex items-center justify-between">
-            <span className="text-[9px] font-bold text-gray-400">Hit Rate</span>
-            <div className="text-right">
-              <span className={`font-black ${isAbove ? 'text-green-400' : 'text-red-400'}`}>{rate}%</span>
-              <span className="text-[8px] text-gray-500 block">vs {baseline}% base</span>
+        {/* Right Square: Return Count */}
+        <div className="bg-zinc-950/90 p-2.5 rounded-xl border border-gray-800/80 flex flex-col justify-between">
+          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Return Count</span>
+          <div className="my-1">
+            <div className={`text-xl font-black ${netUnits >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {netUnits >= 0 ? `+${netUnits}` : netUnits}
+            </div>
+            <div className="text-[9px] font-bold text-gray-300">
+              {unitsIn} in / {unitsOut} out
             </div>
           </div>
-
-          <div className="bg-zinc-900/90 p-1.5 rounded-lg border border-gray-800 flex items-center justify-between">
-            <span className="text-[9px] font-bold text-gray-400">Est. ROI</span>
-            <div className="text-right">
-              <span className={`font-black ${roiNum >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {roiNum >= 0 ? `+${roi}%` : `${roi}%`}
-              </span>
-              <span className="text-[8px] text-gray-500 block">{wins}/{offered} Hits</span>
-            </div>
-          </div>
+          <div className="text-[8px] text-gray-500 font-semibold">Unit Net Flow</div>
         </div>
       </div>
     </div>

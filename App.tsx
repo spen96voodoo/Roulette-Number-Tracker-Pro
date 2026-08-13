@@ -34,7 +34,7 @@ export interface HitStatus {
 const translations = {
     en: {
         title: "Roulette Tracker Pro All in one", strategy: "Closed Numbers", history: "History", alerts: "Alerts", undo: "Undo", clear: "Clear",
-        roadmap: "Roadmap", functions: "Functions", setup: "Set Up", dashboard: "Dashboard", pl: "P/L", bet: "Unit", waiting: "Waiting for spin...", analyzing: "Analyzing...", empty: "Empty",
+        roadmap: "Roadmap", functions: "Functions", setup: "Set Up", dashboard: "Dashboard", pl: "Return", bet: "Input", waiting: "Waiting for spin...", analyzing: "Analyzing...", empty: "Empty",
         clearTitle: "Clear Records", clearMsg: "This will clear all history. Continue?", confirmBtn: "Yes, Clear", cancelBtn: "Cancel", color: "Color", final: "Final",
         series: "Series", topNums: "Top Numbers", hit: "HIT!", voisins: "Top series", orphelins: "Orphelins", tiers: "Small series",
         restoreTitle: "Restore Session", restoreMsg: "Previous session data found. Restore it?", restoreBtn: "Restore", newSessionBtn: "New Session",
@@ -597,7 +597,7 @@ const App: React.FC = () => {
                             <>
                                 {bettingMap.size > 0 && (
                                     <div className="flex justify-between items-center py-0.5 px-1 text-[10px] font-black text-gray-400">
-                                        <span>Target Bet Units: <span className="text-gold text-xs font-black">{totalBaseBetUnits * unitMultiplier}</span></span>
+                                        <span>Target Units: <span className="text-gold text-xs font-black">{totalBaseBetUnits * unitMultiplier}</span></span>
                                         <span className="text-[9px] text-gray-500 font-bold uppercase">Live Combined Strategy</span>
                                     </div>
                                 )}
