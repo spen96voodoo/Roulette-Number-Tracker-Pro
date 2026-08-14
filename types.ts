@@ -139,6 +139,22 @@ export interface PocketPredictionData {
   depthUsed: number;
 }
 
+export interface HitStatus {
+  color: boolean;
+  final: boolean;
+  series: boolean;
+  top: boolean;
+  sector?: boolean;
+  pocket?: boolean;
+  closed?: boolean;
+  dozen?: boolean;
+  col?: boolean;
+  lastSpin?: number;
+  hitUnits?: number;
+  topRank?: number | null;
+  hitSummary?: string;
+}
+
 export interface ComplexPrediction {
   series: SeriesType | null;
   color: RouletteColor | null;

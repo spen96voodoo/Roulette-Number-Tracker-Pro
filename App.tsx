@@ -9,9 +9,9 @@ import { DashboardPage } from './components/DashboardPage';
 import { StrategyPage } from './components/StrategyPage';
 import { FunctionsPage, FunctionTab } from './components/FunctionsPage';
 import { ConfirmationModal } from './components/ConfirmationModal';
-import type { ToastData, SeriesType, ComplexPrediction, RouletteColor, Language, PageType, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from './types';
+import type { ToastData, SeriesType, ComplexPrediction, RouletteColor, Language, PageType, FiveCriteriaDepths, SectorSplitMode, StrategyConfig, HitStatus } from './types';
 import { DEFAULT_STRATEGY_CONFIG } from './types';
-import { getNeighbours, getSeriesType, getMultiCriteriaPrediction, calculateStrategyBets, calculateStrategySignals, calculateStrategyBreakdowns } from './utils/roulette';
+import { getNeighbours, getSeriesType, getMultiCriteriaPrediction, calculateStrategyBets, calculateStrategySignals, calculateStrategyBreakdowns, calculateDozensAndColsStrategy } from './utils/roulette';
 import { PredictionDisplay } from './components/PredictionDisplay';
 import { MultiCriteriaPredictionCard } from './components/MultiCriteriaPredictionCard';
 import { NUMBER_COLORS, ROULETTE_NUMBERS, EUROPEAN_WHEEL_ORDER } from './constants';
@@ -20,15 +20,6 @@ import { getIsVipActivated } from './lib/license';
 const MIN_SPINS_FOR_PATTERNS = 6;
 const SESSION_STORAGE_KEY = 'rouletteSession_v10';
 const INPUT_THROTTLE_MS = 400;
-
-export interface HitStatus {
-    color: boolean;
-    final: boolean;
-    series: boolean;
-    top: boolean;
-    sector?: boolean;
-    pocket?: boolean;
-}
 
 
 const translations = {
@@ -367,13 +358,79 @@ const App: React.FC = () => {
     const now = Date.now(); if (now - lastInputTime.current < INPUT_THROTTLE_MS) return; lastInputTime.current = now;
     if (prediction) {
         setLastPrediction(prediction);
+
+        // Check closed / betting chart targets for this spin
+        const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
+        const targetUnits = targetBets.get(num) || 0;
+        const isClosedHit = targetUnits > 0;
+
+        // Check Dozens and Columns strategy
+        let isDozenHit = false;
+        let isColHit = false;
+        if (num > 0 && spinHistory.length >= 1) {
+          const dc = calculateDozensAndColsStrategy(spinHistory);
+          const winningDozen = num <= 12 ? 1 : num <= 24 ? 2 : 3;
+          const winningCol = (num - 1) % 3 + 1;
+
+          const sortedDozensBySleep = [...dc.dozensArr].sort((a, b) => b.sleep - a.sleep);
+          const sortedDozensByHit = [...dc.dozensArr].sort((a, b) => b.count - a.count);
+          let recDozens: number[] = [];
+          if (sortedDozensBySleep[0].sleep >= 5) {
+            const overdueD = sortedDozensBySleep[0].id === '1st Dozen' ? 1 : sortedDozensBySleep[0].id === '2nd Dozen' ? 2 : 3;
+            const hitPartnerObj = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1] : sortedDozensByHit[0];
+            const partnerD = hitPartnerObj.id === '1st Dozen' ? 1 : hitPartnerObj.id === '2nd Dozen' ? 2 : 3;
+            recDozens = [overdueD, partnerD];
+          } else {
+            const d1 = sortedDozensByHit[0].id === '1st Dozen' ? 1 : sortedDozensByHit[0].id === '2nd Dozen' ? 2 : 3;
+            const d2 = sortedDozensByHit[1].id === '1st Dozen' ? 1 : sortedDozensByHit[1].id === '2nd Dozen' ? 2 : 3;
+            recDozens = [d1, d2];
+          }
+          isDozenHit = recDozens.includes(winningDozen);
+
+          const sortedColsBySleep = [...dc.colsArr].sort((a, b) => b.sleep - a.sleep);
+          const sortedColsByHit = [...dc.colsArr].sort((a, b) => b.count - a.count);
+          let recCols: number[] = [];
+          if (sortedColsBySleep[0].sleep >= 5) {
+            const overdueC = sortedColsBySleep[0].id === 'Col 1' ? 1 : sortedColsBySleep[0].id === 'Col 2' ? 2 : 3;
+            const hitPartnerObj = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1] : sortedColsByHit[0];
+            const partnerC = hitPartnerObj.id === 'Col 1' ? 1 : hitPartnerObj.id === 'Col 2' ? 2 : 3;
+            recCols = [overdueC, partnerC];
+          } else {
+            const c1 = sortedColsByHit[0].id === 'Col 1' ? 1 : sortedColsByHit[0].id === 'Col 2' ? 2 : 3;
+            const c2 = sortedColsByHit[1].id === 'Col 1' ? 1 : sortedColsByHit[1].id === 'Col 2' ? 2 : 3;
+            recCols = [c1, c2];
+          }
+          isColHit = recCols.includes(winningCol);
+        }
+
+        const topIndex = prediction.topNumbers ? prediction.topNumbers.findIndex(tn => tn.num === num) : -1;
+        const isTopHit = topIndex !== -1 && topIndex < 3;
+        const isColorHit = prediction.color !== null && prediction.color === NUMBER_COLORS[num];
+        const isFinalHit = prediction.finalDigits ? prediction.finalDigits.slice(0, strategyConfig.finalDigitsCount || 3).includes(num % 10) : false;
+        const isSeriesHit = prediction.series !== null && prediction.series !== 'none' && prediction.series === getSeriesType(num);
+
+        const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
+        const activeSectorsInLast = prediction.sector?.topSectors
+          ? prediction.sector.topSectors.slice(0, topSectorsCount)
+          : prediction.sector?.numbers ? [{ numbers: prediction.sector.numbers }] : [];
+        const isSectorHit = activeSectorsInLast.some(sec => sec.numbers.includes(num));
+
+        const isPocketHit = (prediction.pocket?.topSteps?.slice(0, strategyConfig.pocketTopRanks || 3).some((s) => s.cwTarget === num || s.acwTarget === num) ?? false) ||
+          (Boolean(strategyConfig.pocketNextChanceEnabled) && (prediction.pocket?.cwTarget === num || prediction.pocket?.acwTarget === num));
+
         setLastHitStatus({
-            color: prediction.color === NUMBER_COLORS[num],
-            final: prediction.finalDigits.includes(num % 10),
-            series: prediction.series === getSeriesType(num),
-            top: prediction.topNumbers.some(tn => tn.num === num),
-            sector: prediction.sector?.numbers.includes(num),
-            pocket: prediction.pocket?.topSteps.some(s => s.cwTarget === num || s.acwTarget === num)
+            color: isColorHit,
+            final: isFinalHit,
+            series: isSeriesHit,
+            top: isTopHit,
+            sector: isSectorHit,
+            pocket: isPocketHit,
+            closed: isClosedHit,
+            dozen: isDozenHit,
+            col: isColHit,
+            lastSpin: num,
+            hitUnits: targetUnits,
+            topRank: isTopHit ? topIndex + 1 : null,
         });
     }
     const newHistory = [...spinHistory, num]; setSpinHistory(newHistory); triggerHaptic(prediction?.topNumbers.some(t => t.num === num) ? 'success' : 'medium');
@@ -601,7 +658,12 @@ const App: React.FC = () => {
                                         <span className="text-[9px] text-gray-500 font-bold uppercase">Live Combined Strategy</span>
                                     </div>
                                 )}
-                                <BettingChart bettingMap={bettingMap} signals={strategySignals} />
+                                <BettingChart 
+                                    bettingMap={bettingMap} 
+                                    signals={strategySignals} 
+                                    lastSpin={spinHistory.length > 0 ? spinHistory[spinHistory.length - 1] : null}
+                                    lastHitStatus={lastHitStatus}
+                                />
                             </>
                         ) : (
                             <div className="pt-2 pb-1 text-center">

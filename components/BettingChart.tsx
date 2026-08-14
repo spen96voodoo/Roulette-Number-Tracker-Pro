@@ -3,10 +3,13 @@
 import React from 'react';
 import { NUMBER_COLORS } from '../constants';
 import type { StrategySummarySignalItem } from '../utils/roulette';
+import type { HitStatus } from '../types';
 
 interface BettingChartProps {
   bettingMap: Map<number, number>;
   signals?: StrategySummarySignalItem[];
+  lastSpin?: number | null;
+  lastHitStatus?: HitStatus | null;
 }
 
 const colorClasses = {
@@ -23,7 +26,7 @@ const getBetAmountBadgeStyle = (amt: number) => {
   return 'bg-blue-400 text-white font-bold';
 };
 
-export const BettingChart: React.FC<BettingChartProps> = ({ bettingMap, signals = [] }) => {
+export const BettingChart: React.FC<BettingChartProps> = ({ bettingMap, signals = [], lastSpin, lastHitStatus }) => {
   if (bettingMap.size === 0 && signals.length === 0) {
     return <p className="text-center text-gray-500 dark:text-gray-400 py-4 text-xs font-bold uppercase tracking-wider">Spin at least 2 times to see strategy predictions.</p>;
   }
@@ -31,6 +34,8 @@ export const BettingChart: React.FC<BettingChartProps> = ({ bettingMap, signals 
   const renderNumberButton = (num: number) => {
     const betAmount = bettingMap.get(num);
     const hasBet = betAmount !== undefined && betAmount > 0;
+    const isLastSpin = lastSpin === num;
+    const isTargetHit = isLastSpin && Boolean(lastHitStatus?.closed);
 
     return (
       <button
@@ -38,9 +43,15 @@ export const BettingChart: React.FC<BettingChartProps> = ({ bettingMap, signals 
         disabled={true} // Not clickable, just for display
         className={`font-semibold rounded-md text-sm md:text-lg w-full aspect-square flex items-center justify-center relative transition-all duration-300
           ${hasBet ? colorClasses[NUMBER_COLORS[num]] : 'bg-gray-200 dark:bg-gray-900/40 text-gray-500 border border-transparent dark:border-gray-800/50'}
+          ${isTargetHit ? 'ring-2 ring-gold ring-offset-1 ring-offset-zinc-950 shadow-lg shadow-yellow-500/50 z-20 animate-pulse font-black' : isLastSpin ? 'ring-2 ring-emerald-400/80 z-10' : ''}
         `}
       >
         {num}
+        {isTargetHit && (
+          <span className="absolute -bottom-1 -left-1 z-20 text-[9px] bg-gold text-black px-1 rounded font-black shadow-xs">
+            🎯HIT
+          </span>
+        )}
         {hasBet && (
           <span className={`absolute -top-1 -right-1 z-10 ${betAmount >= 3 ? 'min-w-5 h-5 px-1 text-[11px]' : 'min-w-4 h-4 text-[10px]'} rounded-full flex items-center justify-center font-extrabold ${getBetAmountBadgeStyle(betAmount)}`}>
             {betAmount}

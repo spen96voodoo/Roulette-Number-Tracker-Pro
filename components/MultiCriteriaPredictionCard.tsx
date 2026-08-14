@@ -1,6 +1,5 @@
 import React from 'react';
-import type { ComplexPrediction, Language, SectorSplitMode, StrategyConfig } from '../types';
-import type { HitStatus } from '../App';
+import type { ComplexPrediction, Language, SectorSplitMode, StrategyConfig, HitStatus } from '../types';
 import { NUMBER_COLORS } from '../constants';
 import { getSeriesType } from '../utils/roulette';
 import { VipActivationCard } from './VipActivationCard';
@@ -198,18 +197,21 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
   const isLastSpinValid = lastSpin !== undefined && lastSpin !== null;
 
   // Evaluate hit status ONLY for the LAST spin against the LAST prediction
+  const isClosedHit = isLastSpinValid && Boolean(lastHitStatus?.closed);
   const isTopHit = isLastSpinValid && (lastHitStatus?.top ?? (lastPrediction?.topNumbers.some(tn => tn.num === lastSpin) ?? false));
   const isColorHit = isLastSpinValid && (lastHitStatus?.color ?? (lastPrediction?.color !== null && lastPrediction?.color === NUMBER_COLORS[lastSpin]));
-  const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (lastPrediction?.finalDigits.includes(lastSpin % 10) ?? false));
-  const isSeriesHit = isLastSpinValid && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series === getSeriesType(lastSpin)));
+  const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (lastPrediction?.finalDigits.slice(0, strategyConfig?.finalDigitsCount || 3).includes(lastSpin % 10) ?? false));
+  const isSeriesHit = isLastSpinValid && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series !== 'none' && lastPrediction?.series === getSeriesType(lastSpin)));
   const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
   const activeSectorsInLast = lastPrediction?.sector?.topSectors
     ? lastPrediction.sector.topSectors.slice(0, topSectorsCount)
     : lastPrediction?.sector?.numbers ? [{ numbers: lastPrediction.sector.numbers }] : [];
   const isSectorHit = isLastSpinValid && (lastHitStatus?.sector ?? activeSectorsInLast.some(sec => sec.numbers.includes(lastSpin)));
-  const isPocketHit = isLastSpinValid && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
+  const isPocketHit = isLastSpinValid && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.slice(0, strategyConfig?.pocketTopRanks || 3).some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
+  const isDozenHit = isLastSpinValid && Boolean(lastHitStatus?.dozen);
+  const isColHit = isLastSpinValid && Boolean(lastHitStatus?.col);
 
-  const hasAnyHit = isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit;
+  const hasAnyHit = isClosedHit || isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit || isDozenHit || isColHit;
 
   // Rank of lastSpin in last prediction if hit
   const hitTopIndex = lastPrediction?.topNumbers.findIndex(tn => tn.num === lastSpin);
@@ -237,7 +239,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           <div className="flex items-center justify-between border-b border-emerald-500/30 pb-1">
             <div className="flex items-center gap-1.5 text-xs font-black text-emerald-300 uppercase tracking-wider">
               <span className="text-sm">🎯</span>
-              <span>{t.lastSpinHit} — #{lastSpin}</span>
+              <span>{t.lastSpinHit} — #{lastSpin} ({NUMBER_COLORS[lastSpin].toUpperCase()} | {getDozenName(lastSpin)} | {getColumnName(lastSpin)})</span>
             </div>
             <span className="text-[10px] font-extrabold bg-emerald-400 text-black px-2.5 py-0.5 rounded-full uppercase shadow-sm">
               🎯 {t.hit}
@@ -245,9 +247,14 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
+            {isClosedHit && (
+              <span className="bg-gold text-black font-black px-2.5 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                🎯 Target Number Hit on Chart (#{lastSpin} — +{(lastHitStatus?.hitUnits || 1) * 36} Units Out)
+              </span>
+            )}
             {isTopHit && (
               <span className="bg-emerald-400 text-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
-                🎯 Top 3 Recommended Hit {hitTopRank ? `(Rank #${hitTopRank}: ${lastSpin})` : `(#${lastSpin})`}
+                🎯 Top 3 Recommended Hit {lastHitStatus?.topRank || hitTopRank ? `(Rank #${lastHitStatus?.topRank || hitTopRank}: ${lastSpin})` : `(#${lastSpin})`}
               </span>
             )}
             {isColorHit && (
@@ -257,7 +264,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
             )}
             {isFinalHit && (
               <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
-                🔢 Final Digit Hit ({lastSpin % 10})
+                🔢 Final Digit Hit (Ending in {lastSpin % 10})
               </span>
             )}
             {isSeriesHit && (
@@ -275,13 +282,16 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                 📏 Pocket Distance Step Hit
               </span>
             )}
-            {/* Included Dozen & Column Info */}
-            <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-              📊 Dozen: {getDozenName(lastSpin)}
-            </span>
-            <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-              📊 Column: {getColumnName(lastSpin)}
-            </span>
+            {isDozenHit && (
+              <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+                📊 Dozen Hit: {getDozenName(lastSpin)} (+30u)
+              </span>
+            )}
+            {isColHit && (
+              <span className="bg-blue-950/90 text-blue-300 border border-blue-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+                📊 Column Hit: {getColumnName(lastSpin)} (+30u)
+              </span>
+            )}
           </div>
         </div>
       )}

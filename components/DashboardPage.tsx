@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Language, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from '../types';
-import { getNeighbours, getMultiCriteriaPrediction } from '../utils/roulette';
+import { getNeighbours, getMultiCriteriaPrediction, calculateDozensAndColsStrategy } from '../utils/roulette';
 import { NUMBER_COLORS, ROULETTE_NUMBERS } from '../constants';
 
 interface DashboardPageProps {
@@ -498,33 +498,48 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
 
         // 8) Dozens and Columns Strategic Signals (2 Dozens 20u + 2 Cols 20u = 40u input)
+        const dc = calculateDozensAndColsStrategy(hist);
         dozensOffered++;
         dozensUnitsIn += 40;
 
         if (winner === 0) {
-          // Zero loses both dozen & column bets
+          // Zero loses both dozen & column bets (0 units returned)
         } else {
           const winningDozen = winner <= 12 ? 1 : winner <= 24 ? 2 : 3;
-          const winningCol = winner % 3 === 1 ? 1 : winner % 3 === 2 ? 2 : 3;
+          const winningCol = (winner - 1) % 3 + 1;
 
-          const topNums = pred.topNumbers || [];
-          const dozenCounts = new Map<number, number>();
-          const colCounts = new Map<number, number>();
-          topNums.forEach(tn => {
-            const d = tn.num === 0 ? 0 : tn.num <= 12 ? 1 : tn.num <= 24 ? 2 : 3;
-            const c = tn.num === 0 ? 0 : tn.num % 3 === 1 ? 1 : tn.num % 3 === 2 ? 2 : 3;
-            if (d > 0) dozenCounts.set(d, (dozenCounts.get(d) || 0) + 1);
-            if (c > 0) colCounts.set(c, (colCounts.get(c) || 0) + 1);
-          });
+          // Compute predicted 2 dozens based on unified strategy
+          const sortedDozensBySleep = [...dc.dozensArr].sort((a, b) => b.sleep - a.sleep);
+          const sortedDozensByHit = [...dc.dozensArr].sort((a, b) => b.count - a.count);
+          let recDozens: number[] = [];
+          if (sortedDozensBySleep[0].sleep >= 5) {
+            const overdueD = sortedDozensBySleep[0].id === '1st Dozen' ? 1 : sortedDozensBySleep[0].id === '2nd Dozen' ? 2 : 3;
+            const hitPartnerObj = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1] : sortedDozensByHit[0];
+            const partnerD = hitPartnerObj.id === '1st Dozen' ? 1 : hitPartnerObj.id === '2nd Dozen' ? 2 : 3;
+            recDozens = [overdueD, partnerD];
+          } else {
+            const d1 = sortedDozensByHit[0].id === '1st Dozen' ? 1 : sortedDozensByHit[0].id === '2nd Dozen' ? 2 : 3;
+            const d2 = sortedDozensByHit[1].id === '1st Dozen' ? 1 : sortedDozensByHit[1].id === '2nd Dozen' ? 2 : 3;
+            recDozens = [d1, d2];
+          }
 
-          const sortedDozens = [1, 2, 3].sort((a, b) => (dozenCounts.get(b) || 0) - (dozenCounts.get(a) || 0));
-          const sortedCols = [1, 2, 3].sort((a, b) => (colCounts.get(b) || 0) - (colCounts.get(a) || 0));
+          // Compute predicted 2 columns based on unified strategy
+          const sortedColsBySleep = [...dc.colsArr].sort((a, b) => b.sleep - a.sleep);
+          const sortedColsByHit = [...dc.colsArr].sort((a, b) => b.count - a.count);
+          let recCols: number[] = [];
+          if (sortedColsBySleep[0].sleep >= 5) {
+            const overdueC = sortedColsBySleep[0].id === 'Col 1' ? 1 : sortedColsBySleep[0].id === 'Col 2' ? 2 : 3;
+            const hitPartnerObj = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1] : sortedColsByHit[0];
+            const partnerC = hitPartnerObj.id === 'Col 1' ? 1 : hitPartnerObj.id === 'Col 2' ? 2 : 3;
+            recCols = [overdueC, partnerC];
+          } else {
+            const c1 = sortedColsByHit[0].id === 'Col 1' ? 1 : sortedColsByHit[0].id === 'Col 2' ? 2 : 3;
+            const c2 = sortedColsByHit[1].id === 'Col 1' ? 1 : sortedColsByHit[1].id === 'Col 2' ? 2 : 3;
+            recCols = [c1, c2];
+          }
 
-          const predictedDozens = sortedDozens.slice(0, 2);
-          const predictedCols = sortedCols.slice(0, 2);
-
-          const dozenHit = predictedDozens.includes(winningDozen);
-          const colHit = predictedCols.includes(winningCol);
+          const dozenHit = recDozens.includes(winningDozen);
+          const colHit = recCols.includes(winningCol);
 
           if (dozenHit || colHit) {
             dozensWins++;

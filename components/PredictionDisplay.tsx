@@ -1,7 +1,6 @@
 import React from 'react';
-import type { ComplexPrediction, Language } from '../types';
+import type { ComplexPrediction, Language, HitStatus } from '../types';
 import { NUMBER_COLORS } from '../constants';
-import type { HitStatus } from '../App';
 
 const colorClasses = {
     red: 'bg-roulette-red text-white',
@@ -45,7 +44,19 @@ export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction
         );
     }
 
-    const hasAnyHit = !!(lastHitStatus && (lastHitStatus.color || lastHitStatus.final || lastHitStatus.series || lastHitStatus.top || lastHitStatus.sector || lastHitStatus.pocket));
+    const hasAnyHit = Boolean(
+        lastHitStatus && (
+            lastHitStatus.closed ||
+            lastHitStatus.top ||
+            lastHitStatus.color ||
+            lastHitStatus.final ||
+            lastHitStatus.series ||
+            lastHitStatus.sector ||
+            lastHitStatus.pocket ||
+            lastHitStatus.dozen ||
+            lastHitStatus.col
+        )
+    );
 
     const getDozenName = (num: number) => {
         if (num === 0) return '0';
@@ -63,10 +74,23 @@ export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction
 
     return (
         <div className="flex items-center gap-1.5 sm:gap-2.5 bg-zinc-800/80 px-2 py-1 rounded-md shadow-inner transition-all border border-gray-700/30">
-            {hasAnyHit && (
-                <div className="flex items-center gap-1 bg-emerald-950 border border-emerald-500/80 px-1.5 py-0.5 rounded text-[9px] font-black text-emerald-300 animate-bounce shadow-sm">
+            {hasAnyHit && lastSpin !== null && lastSpin !== undefined && (
+                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black animate-bounce shadow-sm ${
+                    lastHitStatus?.closed 
+                        ? 'bg-amber-950 border border-gold text-gold' 
+                        : lastHitStatus?.top 
+                        ? 'bg-emerald-900 border border-emerald-400 text-emerald-300' 
+                        : 'bg-emerald-950 border border-emerald-500/80 text-emerald-300'
+                }`}>
                     <span>🎯</span>
-                    <span>{t.hit} {lastSpin !== null && lastSpin !== undefined ? `(#${lastSpin} | ${getDozenName(lastSpin)}/${getColumnName(lastSpin)})` : ''}</span>
+                    <span>
+                        {lastHitStatus?.closed 
+                            ? `Target #${lastSpin} (+${(lastHitStatus.hitUnits || 1) * 36}u)` 
+                            : lastHitStatus?.top 
+                            ? `Top #${lastSpin}` 
+                            : `${t.hit} #${lastSpin} (${getDozenName(lastSpin)}/${getColumnName(lastSpin)})`
+                        }
+                    </span>
                 </div>
             )}
 
