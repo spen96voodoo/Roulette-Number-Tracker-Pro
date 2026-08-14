@@ -692,7 +692,7 @@ const App: React.FC = () => {
                     <div className="bg-zinc-900 p-2 rounded-xl shadow-md border border-gray-800/50">
                         <div className="flex justify-between items-center mb-1.5">
                             <h2 className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('history')} ({spinHistory.length})</h2>
-                            <PredictionDisplay prediction={prediction} lastPrediction={lastPrediction} lastHitStatus={lastHitStatus} lastSpin={spinHistory.length > 0 ? spinHistory[spinHistory.length - 1] : null} lang={lang} />
+                            <PredictionDisplay prediction={prediction} lang={lang} />
                         </div>
                         {spinHistory.length > 0 ? <SpinHistory history={spinHistory} /> : <p className="text-gray-400 text-center py-4 text-[9px] font-black uppercase italic tracking-widest">{t('empty')}</p>}
                     </div>

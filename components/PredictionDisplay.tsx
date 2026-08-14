@@ -34,7 +34,7 @@ interface PredictionDisplayProps {
     lang: Language;
 }
 
-export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction, lastHitStatus, lastSpin, lang }) => {
+export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction, lang }) => {
     const t = labels[lang] || labels['en'];
     if (!prediction) {
         return (
@@ -44,56 +44,8 @@ export const PredictionDisplay: React.FC<PredictionDisplayProps> = ({ prediction
         );
     }
 
-    const hasAnyHit = Boolean(
-        lastHitStatus && (
-            lastHitStatus.closed ||
-            lastHitStatus.top ||
-            lastHitStatus.color ||
-            lastHitStatus.final ||
-            lastHitStatus.series ||
-            lastHitStatus.sector ||
-            lastHitStatus.pocket ||
-            lastHitStatus.dozen ||
-            lastHitStatus.col
-        )
-    );
-
-    const getDozenName = (num: number) => {
-        if (num === 0) return '0';
-        if (num <= 12) return '1D';
-        if (num <= 24) return '2D';
-        return '3D';
-    };
-
-    const getColumnName = (num: number) => {
-        if (num === 0) return '0';
-        if (num % 3 === 1) return '1C';
-        if (num % 3 === 2) return '2C';
-        return '3C';
-    };
-
     return (
         <div className="flex items-center gap-1.5 sm:gap-2.5 bg-zinc-800/80 px-2 py-1 rounded-md shadow-inner transition-all border border-gray-700/30">
-            {hasAnyHit && lastSpin !== null && lastSpin !== undefined && (
-                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black animate-bounce shadow-sm ${
-                    lastHitStatus?.closed 
-                        ? 'bg-amber-950 border border-gold text-gold' 
-                        : lastHitStatus?.top 
-                        ? 'bg-emerald-900 border border-emerald-400 text-emerald-300' 
-                        : 'bg-emerald-950 border border-emerald-500/80 text-emerald-300'
-                }`}>
-                    <span>🎯</span>
-                    <span>
-                        {lastHitStatus?.closed 
-                            ? `Target #${lastSpin} (+${(lastHitStatus.hitUnits || 1) * 36}u)` 
-                            : lastHitStatus?.top 
-                            ? `Top #${lastSpin}` 
-                            : `${t.hit} #${lastSpin} (${getDozenName(lastSpin)}/${getColumnName(lastSpin)})`
-                        }
-                    </span>
-                </div>
-            )}
-
             <div className="flex flex-col items-center border-r border-gray-700 pr-1.5 sm:pr-2 relative">
                 <span className="text-[7px] font-bold uppercase leading-none mb-1 text-gray-400">
                     {t.color}

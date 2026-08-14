@@ -233,48 +233,48 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
 
   return (
     <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-xl border border-gold/40 shadow-lg space-y-2.5 transition-all">
-      {/* LAST SPIN HIT ANNOUNCEMENT BANNER */}
+      {/* LAST SPIN HIT ANNOUNCEMENT BANNER (No number shown, only which prediction hit) */}
       {isLastSpinValid && hasAnyHit && (
-        <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 border-2 border-emerald-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/25 animate-bounce space-y-1.5">
+        <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 border-2 border-emerald-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/25 space-y-1.5 transition-all">
           <div className="flex items-center justify-between border-b border-emerald-500/30 pb-1">
             <div className="flex items-center gap-1.5 text-xs font-black text-emerald-300 uppercase tracking-wider">
               <span className="text-sm">🎯</span>
-              <span>{t.lastSpinHit} — #{lastSpin} ({NUMBER_COLORS[lastSpin].toUpperCase()} | {getDozenName(lastSpin)} | {getColumnName(lastSpin)})</span>
+              <span>🎯 PREDICTION HIT!</span>
             </div>
             <span className="text-[10px] font-extrabold bg-emerald-400 text-black px-2.5 py-0.5 rounded-full uppercase shadow-sm">
-              🎯 {t.hit}
+              {t.hit}
             </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
             {isClosedHit && (
               <span className="bg-gold text-black font-black px-2.5 py-0.5 rounded-md shadow-xs flex items-center gap-1">
-                🎯 Target Number Hit on Chart (#{lastSpin} — +{(lastHitStatus?.hitUnits || 1) * 36} Units Out)
+                🎯 Target Number Hit (+{(lastHitStatus?.hitUnits || 1) * 36}u)
               </span>
             )}
             {isTopHit && (
               <span className="bg-emerald-400 text-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
-                🎯 Top 3 Recommended Hit {lastHitStatus?.topRank || hitTopRank ? `(Rank #${lastHitStatus?.topRank || hitTopRank}: ${lastSpin})` : `(#${lastSpin})`}
+                🎯 Top 3 Recommended Hit {lastHitStatus?.topRank || hitTopRank ? `(Rank #${lastHitStatus?.topRank || hitTopRank})` : ''}
               </span>
             )}
             {isColorHit && (
               <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
-                🎨 Colour Hit ({lastPrediction?.color ? lastPrediction.color.toUpperCase() : NUMBER_COLORS[lastSpin].toUpperCase()})
+                🎨 Colour Hit ({lastPrediction?.color ? lastPrediction.color.toUpperCase() : 'MATCH'})
               </span>
             )}
             {isFinalHit && (
               <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
-                🔢 Final Digit Hit (Ending in {lastSpin % 10})
+                🔢 Final Digit Hit
               </span>
             )}
             {isSeriesHit && (
               <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
-                🧭 Series Hit ({lastPrediction?.series || getSeriesType(lastSpin)})
+                🧭 Series Hit ({lastPrediction?.series || 'MATCH'})
               </span>
             )}
             {isSectorHit && (
               <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/80 px-2 py-0.5 rounded-md">
-                🎯 Sector Hit ({lastPrediction?.sector?.predictedSectorName || 'Sector'})
+                🎡 Sector Hit ({lastPrediction?.sector?.predictedSectorName || 'MATCH'})
               </span>
             )}
             {isPocketHit && (
@@ -284,12 +284,12 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
             )}
             {isDozenHit && (
               <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-                📊 Dozen Hit: {getDozenName(lastSpin)} (+30u)
+                📊 Dozen Hit (+30u)
               </span>
             )}
             {isColHit && (
               <span className="bg-blue-950/90 text-blue-300 border border-blue-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-                📊 Column Hit: {getColumnName(lastSpin)} (+30u)
+                📊 Column Hit (+30u)
               </span>
             )}
           </div>
@@ -327,10 +327,20 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
       </div>
 
       {/* Top 3 Recommended Numbers Section for Upcoming Spin */}
-      <div className="p-2 rounded-xl border bg-zinc-900/90 border-gray-800 space-y-1.5 transition-all">
+      <div className={`p-2 rounded-xl border space-y-1.5 transition-all ${
+        isTopHit 
+          ? 'bg-emerald-950/30 border-emerald-400 ring-2 ring-emerald-400 shadow-md shadow-emerald-500/20' 
+          : 'bg-zinc-900/90 border-gray-800'
+      }`}>
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase text-gold tracking-wider flex items-center gap-1">
-            <span>🎯</span> {t.top3}
+          <span className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+            <span>🎯</span> 
+            <span className={isTopHit ? 'text-emerald-300' : 'text-gold'}>{t.top3}</span>
+            {isTopHit && (
+              <span className="bg-emerald-400 text-black text-[8px] font-black px-1.5 py-0.2 rounded uppercase ml-1 shadow-xs">
+                🎯 HIT
+              </span>
+            )}
           </span>
           <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.2 rounded-full uppercase">
             AI Score Active
@@ -412,10 +422,19 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
         {/* Row 1: 3 Compact Criteria (Colour, Final, Series) */}
         <div className="md:col-span-3 grid grid-cols-3 gap-1">
           {/* Colour */}
-          <div className="p-1 px-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex flex-col justify-between gap-0.5 min-h-[38px]">
+          <div className={`p-1 px-1.5 rounded-lg border flex flex-col justify-between gap-0.5 min-h-[38px] transition-all ${
+            isColorHit 
+              ? 'bg-emerald-950/30 border-emerald-400 ring-2 ring-emerald-400 shadow-md shadow-emerald-500/20' 
+              : 'bg-zinc-900/90 border-gray-800'
+          }`}>
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase text-gray-400">
-                🎨 {t.color}
+              <span className="text-[9px] font-black uppercase flex items-center gap-1">
+                <span className={isColorHit ? 'text-emerald-300' : 'text-gray-400'}>🎨 {t.color}</span>
+                {isColorHit && (
+                  <span className="bg-emerald-400 text-black text-[7px] font-black px-1 rounded uppercase">
+                    HIT
+                  </span>
+                )}
               </span>
             </div>
             <div className="flex items-center justify-center">
@@ -438,10 +457,19 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           </div>
 
           {/* Final Digit */}
-          <div className="p-1 px-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex flex-col justify-between gap-0.5 min-h-[38px]">
+          <div className={`p-1 px-1.5 rounded-lg border flex flex-col justify-between gap-0.5 min-h-[38px] transition-all ${
+            isFinalHit 
+              ? 'bg-emerald-950/30 border-emerald-400 ring-2 ring-emerald-400 shadow-md shadow-emerald-500/20' 
+              : 'bg-zinc-900/90 border-gray-800'
+          }`}>
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[9px] font-black uppercase text-gray-400">
-                🔢 {t.final}
+              <span className="text-[9px] font-black uppercase flex items-center gap-1">
+                <span className={isFinalHit ? 'text-emerald-300' : 'text-gray-400'}>🔢 {t.final}</span>
+                {isFinalHit && (
+                  <span className="bg-emerald-400 text-black text-[7px] font-black px-1 rounded uppercase">
+                    HIT
+                  </span>
+                )}
               </span>
               <div className="flex items-center gap-0.5 bg-zinc-950 px-1 py-0.2 rounded border border-gray-800">
                 {([2, 3, 4] as const).map(cnt => (
@@ -479,10 +507,19 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           </div>
 
           {/* Series */}
-          <div className="p-1 px-1.5 rounded-lg border bg-zinc-900/90 border-gray-800 flex flex-col justify-between gap-0.5 min-h-[38px]">
+          <div className={`p-1 px-1.5 rounded-lg border flex flex-col justify-between gap-0.5 min-h-[38px] transition-all ${
+            isSeriesHit 
+              ? 'bg-emerald-950/30 border-emerald-400 ring-2 ring-emerald-400 shadow-md shadow-emerald-500/20' 
+              : 'bg-zinc-900/90 border-gray-800'
+          }`}>
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase text-gray-400">
-                🧭 {t.series}
+              <span className="text-[9px] font-black uppercase flex items-center gap-1">
+                <span className={isSeriesHit ? 'text-emerald-300' : 'text-gray-400'}>🧭 {t.series}</span>
+                {isSeriesHit && (
+                  <span className="bg-emerald-400 text-black text-[7px] font-black px-1 rounded uppercase">
+                    HIT
+                  </span>
+                )}
               </span>
             </div>
             <div className="flex items-center justify-center">
@@ -504,10 +541,19 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
         </div>
 
         {/* Dynamic Sector Prediction */}
-        <div className="p-1.5 sm:p-2 rounded-lg border bg-zinc-900/90 border-gray-800 space-y-2 transition-all">
+        <div className={`p-1.5 sm:p-2 rounded-lg border space-y-2 transition-all ${
+          isSectorHit 
+            ? 'bg-emerald-950/30 border-emerald-400 ring-2 ring-emerald-400 shadow-md shadow-emerald-500/20' 
+            : 'bg-zinc-900/90 border-gray-800'
+        }`}>
           <div className="flex flex-wrap items-center justify-between text-[9px] font-black uppercase gap-1">
-            <span className="flex items-center gap-1 text-gray-400">
-              <span>🎡</span> {t.sector} ({sectorSplitMode}S)
+            <span className="flex items-center gap-1">
+              <span className={isSectorHit ? 'text-emerald-300' : 'text-gray-400'}>🎡 {t.sector} ({sectorSplitMode}S)</span>
+              {isSectorHit && (
+                <span className="bg-emerald-400 text-black text-[7px] font-black px-1.5 py-0.2 rounded uppercase shadow-xs">
+                  HIT
+                </span>
+              )}
             </span>
 
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -678,10 +724,19 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
         </div>
 
         {/* Pocket Distance Prediction */}
-        <div className="p-1.5 sm:p-2 rounded-lg border bg-zinc-900/90 border-gray-800 space-y-1 md:col-span-2 transition-all">
+        <div className={`p-1.5 sm:p-2 rounded-lg border space-y-1 md:col-span-2 transition-all ${
+          isPocketHit 
+            ? 'bg-emerald-950/30 border-emerald-400 ring-2 ring-emerald-400 shadow-md shadow-emerald-500/20' 
+            : 'bg-zinc-900/90 border-gray-800'
+        }`}>
           <div className="flex items-center justify-between text-[9px] font-black uppercase">
-            <span className="flex items-center gap-1 text-gray-400">
-              <span>📏</span> {t.pocket}
+            <span className="flex items-center gap-1">
+              <span className={isPocketHit ? 'text-emerald-300' : 'text-gray-400'}>📏 {t.pocket}</span>
+              {isPocketHit && (
+                <span className="bg-emerald-400 text-black text-[7px] font-black px-1.5 py-0.2 rounded uppercase shadow-xs">
+                  HIT
+                </span>
+              )}
             </span>
             <span className="text-gold font-bold text-[8px]">Top 1-3 History Steps</span>
           </div>
