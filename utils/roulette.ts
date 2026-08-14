@@ -703,6 +703,147 @@ export const calculateStrategyBreakdowns = (
   return breakdownMap;
 };
 
+export interface DozensColsStrategyResult {
+  recDozenStrategy: string;
+  recColStrategy: string;
+  dozensArr: Array<{ id: string; count: number; sleep: number; label: string }>;
+  colsArr: Array<{ id: string; count: number; sleep: number; label: string }>;
+  sortedDozensBySleep: Array<{ id: string; count: number; sleep: number; label: string }>;
+  sortedDozensByHit: Array<{ id: string; count: number; sleep: number; label: string }>;
+  sortedColsBySleep: Array<{ id: string; count: number; sleep: number; label: string }>;
+  sortedColsByHit: Array<{ id: string; count: number; sleep: number; label: string }>;
+  d1: number;
+  d2: number;
+  d3: number;
+  c1: number;
+  c2: number;
+  c3: number;
+  sleepD1: number;
+  sleepD2: number;
+  sleepD3: number;
+  sleepC1: number;
+  sleepC2: number;
+  sleepC3: number;
+  zeroCount: number;
+  grid3x3: number[][];
+  hotGridStr: string;
+}
+
+export const calculateDozensAndColsStrategy = (history: number[]): DozensColsStrategyResult => {
+  const total = history.length;
+  let d1 = 0, d2 = 0, d3 = 0, zeroCount = 0;
+  let c1 = 0, c2 = 0, c3 = 0;
+  let sleepD1 = -1, sleepD2 = -1, sleepD3 = -1;
+  let sleepC1 = -1, sleepC2 = -1, sleepC3 = -1;
+  const grid3x3 = Array.from({ length: 3 }, () => [0, 0, 0]);
+
+  for (let i = 0; i < history.length; i++) {
+    const num = history[i];
+    if (num === 0) {
+      zeroCount++;
+    } else {
+      const dIdx = num <= 12 ? 0 : num <= 24 ? 1 : 2;
+      if (dIdx === 0) d1++;
+      else if (dIdx === 1) d2++;
+      else d3++;
+
+      const cIdx = (num - 1) % 3;
+      if (cIdx === 0) c1++;
+      else if (cIdx === 1) c2++;
+      else c3++;
+
+      grid3x3[dIdx][cIdx]++;
+    }
+  }
+
+  for (let i = history.length - 1; i >= 0; i--) {
+    const num = history[i];
+    const revDist = history.length - 1 - i;
+    if (num === 0) continue;
+
+    const dIdx = num <= 12 ? 0 : num <= 24 ? 1 : 2;
+    const cIdx = (num - 1) % 3;
+
+    if (dIdx === 0 && sleepD1 === -1) sleepD1 = revDist;
+    if (dIdx === 1 && sleepD2 === -1) sleepD2 = revDist;
+    if (dIdx === 2 && sleepD3 === -1) sleepD3 = revDist;
+
+    if (cIdx === 0 && sleepC1 === -1) sleepC1 = revDist;
+    if (cIdx === 1 && sleepC2 === -1) sleepC2 = revDist;
+    if (cIdx === 2 && sleepC3 === -1) sleepC3 = revDist;
+  }
+
+  if (sleepD1 === -1) sleepD1 = total;
+  if (sleepD2 === -1) sleepD2 = total;
+  if (sleepD3 === -1) sleepD3 = total;
+  if (sleepC1 === -1) sleepC1 = total;
+  if (sleepC2 === -1) sleepC2 = total;
+  if (sleepC3 === -1) sleepC3 = total;
+
+  const dozensArr = [
+    { id: '1st Dozen', count: d1, sleep: sleepD1, label: '1-12' },
+    { id: '2nd Dozen', count: d2, sleep: sleepD2, label: '13-24' },
+    { id: '3rd Dozen', count: d3, sleep: sleepD3, label: '25-36' },
+  ];
+
+  const colsArr = [
+    { id: 'Col 1', count: c1, sleep: sleepC1, label: '1,4,7...' },
+    { id: 'Col 2', count: c2, sleep: sleepC2, label: '2,5,8...' },
+    { id: 'Col 3', count: c3, sleep: sleepC3, label: '3,6,9...' },
+  ];
+
+  const sortedDozensBySleep = [...dozensArr].sort((a, b) => b.sleep - a.sleep);
+  const sortedDozensByHit = [...dozensArr].sort((a, b) => b.count - a.count);
+
+  let recDozenStrategy = "";
+  if (sortedDozensBySleep[0].sleep >= 5) {
+    const hitPartner = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1].id : sortedDozensByHit[0].id;
+    recDozenStrategy = `Hedge ${sortedDozensBySleep[0].id} + ${hitPartner}`;
+  } else {
+    recDozenStrategy = `Play ${sortedDozensByHit[0].id} + ${sortedDozensByHit[1].id}`;
+  }
+
+  const sortedColsBySleep = [...colsArr].sort((a, b) => b.sleep - a.sleep);
+  const sortedColsByHit = [...colsArr].sort((a, b) => b.count - a.count);
+
+  let recColStrategy = "";
+  if (sortedColsBySleep[0].sleep >= 5) {
+    const hitPartner = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1].id : sortedColsByHit[0].id;
+    recColStrategy = `Hedge ${sortedColsBySleep[0].id} + ${hitPartner}`;
+  } else {
+    recColStrategy = `Play ${sortedColsByHit[0].id} + ${sortedColsByHit[1].id}`;
+  }
+
+  let maxGridVal = -1;
+  let hotGridStr = "N/A";
+  for (let d = 0; d < 3; d++) {
+    for (let c = 0; c < 3; c++) {
+      if (grid3x3[d][c] > maxGridVal) {
+        maxGridVal = grid3x3[d][c];
+        hotGridStr = `Dozen ${d + 1} × Col ${c + 1} (${grid3x3[d][c]} hits)`;
+      }
+    }
+  }
+
+  return {
+    recDozenStrategy,
+    recColStrategy,
+    dozensArr,
+    colsArr,
+    sortedDozensBySleep,
+    sortedDozensByHit,
+    sortedColsBySleep,
+    sortedColsByHit,
+    d1, d2, d3,
+    c1, c2, c3,
+    sleepD1, sleepD2, sleepD3,
+    sleepC1, sleepC2, sleepC3,
+    zeroCount,
+    grid3x3,
+    hotGridStr,
+  };
+};
+
 export interface StrategySummarySignalItem {
   type: 'dozen' | 'col' | 'color' | 'series';
   label: string;
@@ -717,73 +858,36 @@ export const calculateStrategySignals = (
   const signals: StrategySummarySignalItem[] = [];
   if (history.length < 1) return signals;
 
+  const dc = calculateDozensAndColsStrategy(history);
+
   // 1. DOZENS
   if (config.dozensEnabled) {
-    const dozensCount = [0, 0, 0];
-    const last15 = history.slice(-15);
-    last15.forEach(n => {
-      if (n >= 1 && n <= 12) dozensCount[0]++;
-      else if (n >= 13 && n <= 24) dozensCount[1]++;
-      else if (n >= 25 && n <= 36) dozensCount[2]++;
-    });
-
-    let sleepD1 = -1, sleepD2 = -1, sleepD3 = -1;
-    for (let i = history.length - 1; i >= 0; i--) {
-      const n = history[i];
-      if (sleepD1 === -1 && n >= 1 && n <= 12) sleepD1 = history.length - 1 - i;
-      if (sleepD2 === -1 && n >= 13 && n <= 24) sleepD2 = history.length - 1 - i;
-      if (sleepD3 === -1 && n >= 25 && n <= 36) sleepD3 = history.length - 1 - i;
-    }
-
-    const dozensArr = [
-      { id: '1st Dozen', count: dozensCount[0], sleep: sleepD1 >= 0 ? sleepD1 : 99 },
-      { id: '2nd Dozen', count: dozensCount[1], sleep: sleepD2 >= 0 ? sleepD2 : 99 },
-      { id: '3rd Dozen', count: dozensCount[2], sleep: sleepD3 >= 0 ? sleepD3 : 99 },
-    ];
-    const sortedDozensHits = [...dozensArr].sort((a,b) => b.count - a.count);
-    const dozenStr = `${sortedDozensHits[0].id} + ${sortedDozensHits[1].id}`;
+    // Format concise string to fit cleanly in compact 2-column mobile layout
+    const formattedDozenStr = dc.recDozenStrategy
+      .replace(/1st Dozen/g, '1st')
+      .replace(/2nd Dozen/g, '2nd')
+      .replace(/3rd Dozen/g, '3rd');
 
     signals.push({
       type: 'dozen',
       label: 'DOZEN',
-      value: dozenStr,
-      badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs font-black',
+      value: formattedDozenStr,
+      badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30 shadow-2xs font-black',
     });
   }
 
   // 2. COLUMNS
   if (config.colsEnabled) {
-    const colsCount = [0, 0, 0];
-    const last15 = history.slice(-15);
-    last15.forEach(n => {
-      if (n > 0) {
-        if (n % 3 === 1) colsCount[0]++;
-        else if (n % 3 === 2) colsCount[1]++;
-        else if (n % 3 === 0) colsCount[2]++;
-      }
-    });
-
-    let sleepC1 = -1, sleepC2 = -1, sleepC3 = -1;
-    for (let i = history.length - 1; i >= 0; i--) {
-      const n = history[i];
-      if (sleepC1 === -1 && n > 0 && n % 3 === 1) sleepC1 = history.length - 1 - i;
-      if (sleepC2 === -1 && n > 0 && n % 3 === 2) sleepC2 = history.length - 1 - i;
-      if (sleepC3 === -1 && n > 0 && n % 3 === 0) sleepC3 = history.length - 1 - i;
-    }
-
-    const colsArr = [
-      { id: 'Col 1', count: colsCount[0], sleep: sleepC1 >= 0 ? sleepC1 : 99 },
-      { id: 'Col 2', count: colsCount[1], sleep: sleepC2 >= 0 ? sleepC2 : 99 },
-      { id: 'Col 3', count: colsCount[2], sleep: sleepC3 >= 0 ? sleepC3 : 99 },
-    ];
-    const sortedColsHits = [...colsArr].sort((a,b) => b.count - a.count);
-    const colStr = `${sortedColsHits[0].id} + ${sortedColsHits[1].id}`;
+    const formattedColStr = dc.recColStrategy
+      .replace(/Col 1/g, 'Col 1')
+      .replace(/Col 2/g, 'Col 2')
+      .replace(/Col 3/g, 'Col 3');
 
     signals.push({
       type: 'col',
       label: 'COLUMN',
-      value: colStr,
-      badgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-xs font-black',
+      value: formattedColStr,
+      badgeClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30 shadow-2xs font-black',
     });
   }
 
@@ -799,8 +903,8 @@ export const calculateStrategySignals = (
       label: 'COLOUR',
       value: isRed ? 'RED 🔴' : 'BLACK ⬛',
       badgeClass: isRed
-        ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-xs font-black'
-        : 'bg-zinc-800 text-gray-200 border-zinc-600 shadow-xs font-black',
+        ? 'bg-red-500/15 text-red-400 border-red-500/30 shadow-2xs font-black'
+        : 'bg-zinc-800/90 text-gray-200 border-zinc-700/80 shadow-2xs font-black',
     });
   }
 
@@ -826,13 +930,13 @@ export const calculateStrategySignals = (
 
     let seriesText = 'Voisins (Top)';
     if (likelySeries === 'Small') seriesText = 'Tiers (Small)';
-    else if (likelySeries === 'Middle') seriesText = 'Orphelins (Middle)';
+    else if (likelySeries === 'Middle') seriesText = 'Orphelins (Mid)';
 
     signals.push({
       type: 'series',
       label: 'SERIES',
       value: seriesText,
-      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-xs font-black',
+      badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30 shadow-2xs font-black',
     });
   }
 

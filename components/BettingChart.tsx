@@ -71,16 +71,16 @@ export const BettingChart: React.FC<BettingChartProps> = ({ bettingMap, signals 
         </div>
       </div>
 
-      {/* Downside Strategy Signals (4 Separate Squares: Dozen, Column, Colour, Series) */}
+      {/* Downside Strategy Signals (Compact 2-Column Grid: Dozen, Column, Colour, Series) */}
       {signals && signals.length > 0 && (
-        <div className="pt-1.5 border-t border-gray-800/60 grid grid-cols-2 gap-1.5 bg-zinc-950/60 p-1.5 rounded-lg">
+        <div className="pt-1 border-t border-gray-800/60 grid grid-cols-2 gap-1 bg-zinc-950/70 p-1 rounded-lg">
           {signals.map((sig, idx) => (
             <div
               key={idx}
-              className={`px-2 py-1 rounded-md border text-[10px] font-black uppercase flex items-center justify-between gap-1 shadow-xs ${sig.badgeClass}`}
+              className={`px-2 py-1 rounded border text-[9.5px] sm:text-[10px] font-black uppercase flex items-center justify-between gap-1 shadow-2xs ${sig.badgeClass}`}
             >
-              <span className="text-[9px] opacity-80 font-bold whitespace-nowrap">{sig.label}:</span>
-              <span className="font-extrabold tracking-tight truncate text-right">{sig.value}</span>
+              <span className="text-[8.5px] sm:text-[9px] opacity-75 font-bold whitespace-nowrap">{sig.label}:</span>
+              <span className="font-extrabold tracking-tight text-right truncate">{sig.value}</span>
             </div>
           ))}
         </div>

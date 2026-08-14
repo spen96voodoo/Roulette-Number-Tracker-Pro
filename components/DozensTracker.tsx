@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { Language } from '../types';
+import { calculateDozensAndColsStrategy } from '../utils/roulette';
 
 interface DozensTrackerProps {
   history: number[];
@@ -135,133 +136,37 @@ export const DozensTracker: React.FC<DozensTrackerProps> = ({ history, lang = 'e
       return null;
     }
 
-    // Dozen counts
-    let d1 = 0, d2 = 0, d3 = 0, zeroCount = 0;
-    // Column counts
-    let c1 = 0, c2 = 0, c3 = 0;
-
-    // Sleep tracking (spins since hit)
-    let sleepD1 = -1, sleepD2 = -1, sleepD3 = -1;
-    let sleepC1 = -1, sleepC2 = -1, sleepC3 = -1;
-
-    // 3x3 Grid: matrix[dIdx][cIdx]
-    const grid3x3 = Array.from({ length: 3 }, () => [0, 0, 0]);
-
-    for (let i = 0; i < history.length; i++) {
-      const num = history[i];
-      if (num === 0) {
-        zeroCount++;
-      } else {
-        // Dozen
-        const dIdx = num <= 12 ? 0 : num <= 24 ? 1 : 2;
-        if (dIdx === 0) d1++;
-        else if (dIdx === 1) d2++;
-        else d3++;
-
-        // Column
-        const cIdx = (num - 1) % 3; // 0 for Col1, 1 for Col2, 2 for Col3
-        if (cIdx === 0) c1++;
-        else if (cIdx === 1) c2++;
-        else c3++;
-
-        // Grid
-        grid3x3[dIdx][cIdx]++;
-      }
-    }
-
-    // Calculate sleep count backwards from end of history
-    for (let i = history.length - 1; i >= 0; i--) {
-      const num = history[i];
-      const revDist = history.length - 1 - i;
-
-      if (num === 0) continue;
-
-      const dIdx = num <= 12 ? 0 : num <= 24 ? 1 : 2;
-      const cIdx = (num - 1) % 3;
-
-      if (dIdx === 0 && sleepD1 === -1) sleepD1 = revDist;
-      if (dIdx === 1 && sleepD2 === -1) sleepD2 = revDist;
-      if (dIdx === 2 && sleepD3 === -1) sleepD3 = revDist;
-
-      if (cIdx === 0 && sleepC1 === -1) sleepC1 = revDist;
-      if (cIdx === 1 && sleepC2 === -1) sleepC2 = revDist;
-      if (cIdx === 2 && sleepC3 === -1) sleepC3 = revDist;
-    }
-
-    // Default sleep if never hit
-    if (sleepD1 === -1) sleepD1 = total;
-    if (sleepD2 === -1) sleepD2 = total;
-    if (sleepD3 === -1) sleepD3 = total;
-    if (sleepC1 === -1) sleepC1 = total;
-    if (sleepC2 === -1) sleepC2 = total;
-    if (sleepC3 === -1) sleepC3 = total;
-
-    // Strategic Recommendations
-    const dozensArr = [
-      { id: '1st Dozen', count: d1, sleep: sleepD1, label: '1-12' },
-      { id: '2nd Dozen', count: d2, sleep: sleepD2, label: '13-24' },
-      { id: '3rd Dozen', count: d3, sleep: sleepD3, label: '25-36' },
-    ];
-
-    const colsArr = [
-      { id: 'Col 1', count: c1, sleep: sleepC1, label: '1,4,7...' },
-      { id: 'Col 2', count: c2, sleep: sleepC2, label: '2,5,8...' },
-      { id: 'Col 3', count: c3, sleep: sleepC3, label: '3,6,9...' },
-    ];
-
-    // Double dozen strategy: Pick top 2 most active or overdue
-    const sortedDozensBySleep = [...dozensArr].sort((a, b) => b.sleep - a.sleep);
-    const sortedDozensByHit = [...dozensArr].sort((a, b) => b.count - a.count);
-
-    let recDozenStrategy = "";
-    if (sortedDozensBySleep[0].sleep >= 5) {
-      recDozenStrategy = `Hedge ${sortedDozensBySleep[0].id} (${sortedDozensBySleep[0].label}) + ${sortedDozensByHit[0].id}`;
-    } else {
-      recDozenStrategy = `Play ${sortedDozensByHit[0].id} + ${sortedDozensByHit[1].id}`;
-    }
-
-    const sortedColsBySleep = [...colsArr].sort((a, b) => b.sleep - a.sleep);
-    const sortedColsByHit = [...colsArr].sort((a, b) => b.count - a.count);
-
-    let recColStrategy = "";
-    if (sortedColsBySleep[0].sleep >= 5) {
-      recColStrategy = `Hedge ${sortedColsBySleep[0].id} + ${sortedColsByHit[0].id}`;
-    } else {
-      recColStrategy = `Play ${sortedColsByHit[0].id} + ${sortedColsByHit[1].id}`;
-    }
-
-    // Find hot grid cell
-    let maxGridVal = -1;
-    let hotGridStr = "N/A";
-    for (let d = 0; d < 3; d++) {
-      for (let c = 0; c < 3; c++) {
-        if (grid3x3[d][c] > maxGridVal) {
-          maxGridVal = grid3x3[d][c];
-          hotGridStr = `Dozen ${d + 1} × Col ${c + 1} (${grid3x3[d][c]} hits)`;
-        }
-      }
-    }
+    const strat = calculateDozensAndColsStrategy(history);
 
     const chartData = [
-      { name: '1st Dozen (1-12)', value: d1, percentage: ((d1 / total) * 100).toFixed(1) },
-      { name: '2nd Dozen (13-24)', value: d2, percentage: ((d2 / total) * 100).toFixed(1) },
-      { name: '3rd Dozen (25-36)', value: d3, percentage: ((d3 / total) * 100).toFixed(1) },
-      { name: 'Zero', value: zeroCount, percentage: ((zeroCount / total) * 100).toFixed(1) },
+      { name: '1st Dozen (1-12)', value: strat.d1, percentage: ((strat.d1 / total) * 100).toFixed(1) },
+      { name: '2nd Dozen (13-24)', value: strat.d2, percentage: ((strat.d2 / total) * 100).toFixed(1) },
+      { name: '3rd Dozen (25-36)', value: strat.d3, percentage: ((strat.d3 / total) * 100).toFixed(1) },
+      { name: 'Zero', value: strat.zeroCount, percentage: ((strat.zeroCount / total) * 100).toFixed(1) },
     ].filter(d => d.value > 0);
 
     return {
       total,
-      d1, d2, d3, zeroCount,
-      c1, c2, c3,
-      sleepD1, sleepD2, sleepD3,
-      sleepC1, sleepC2, sleepC3,
-      grid3x3,
+      d1: strat.d1,
+      d2: strat.d2,
+      d3: strat.d3,
+      zeroCount: strat.zeroCount,
+      c1: strat.c1,
+      c2: strat.c2,
+      c3: strat.c3,
+      sleepD1: strat.sleepD1,
+      sleepD2: strat.sleepD2,
+      sleepD3: strat.sleepD3,
+      sleepC1: strat.sleepC1,
+      sleepC2: strat.sleepC2,
+      sleepC3: strat.sleepC3,
+      grid3x3: strat.grid3x3,
       chartData,
-      recDozenStrategy,
-      recColStrategy,
-      hotGridStr,
-      sortedDozensBySleep,
-      sortedColsBySleep,
+      recDozenStrategy: strat.recDozenStrategy,
+      recColStrategy: strat.recColStrategy,
+      hotGridStr: strat.hotGridStr,
+      sortedDozensBySleep: strat.sortedDozensBySleep,
+      sortedColsBySleep: strat.sortedColsBySleep,
     };
   }, [history]);
 
