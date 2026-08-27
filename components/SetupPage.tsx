@@ -45,15 +45,21 @@ const labels = {
   en: {
     setupTitle: 'System Set Up',
     langLabel: 'System Language',
+    fiveCriteriaTitle: '5 Prediction Criteria Lookback Depths',
     setupIntro: 'Configure analysis engine lookback spin depth for each of the 5 prediction criteria.',
     colorDepth: '🎨 Colour Prediction Depth',
     finalDepth: '🔢 Final Digit Prediction Depth',
     seriesDepth: '🧭 Series Prediction Depth',
     sectorsDepth: '🎯 Sectors Prediction Depth',
     pocketsDepth: '📏 Pockets Step Depth',
+    othersTitle: 'Others Prediction Lookback Depths',
+    othersIntro: 'Configure spin lookback depth for Dozens & Columns strategy and Top 3 Numbers prediction.',
+    dozensDepth: '📊 Dozens & Columns Depth',
+    topNumbersDepth: '🎯 Top 3 Numbers Depth',
     spins: 'Spins',
-    resetAll: 'Reset All to 5 Spins',
-    defaultNotice: 'Default lookback depth is set to 5 spins for optimal pattern recognition.',
+    resetAll: 'Reset All to 10 Spins',
+    defaultNotice: 'Default lookback depth is set to 10 spins for optimal pattern recognition.',
+    othersNotice: 'Configure independent lookback depths for Dozens & Columns and Top 3 Numbers (5, 8, 10, 12, 15 spins). Default: 10 spins.',
     reloadTitle: 'App Reload & Reset',
     currentVersion: 'Current Version: v2.5.0 Pro All-in-One',
     reloadNotice: 'Reload or restart the application anytime. Choose to keep your current spin history and settings intact, or clear all data for a fresh restart.',
@@ -85,15 +91,21 @@ const labels = {
   zh: {
     setupTitle: '系统设置',
     langLabel: '系统语言',
+    fiveCriteriaTitle: '5大预测标准历史深度',
     setupIntro: '针对5大预测标准分别配置分析引擎的历史旋转深度。',
     colorDepth: '🎨 颜色预测深度',
     finalDepth: '🔢 尾数预测深度',
     seriesDepth: '🧭 分区预测深度',
     sectorsDepth: '🎯 扇区预测深度',
     pocketsDepth: '📏 口袋步距深度',
+    othersTitle: '其他预测项目历史深度',
+    othersIntro: '配置打几十/打列走势策略以及前3热门推荐数字的分析深度。',
+    dozensDepth: '📊 打几十与打列深度',
+    topNumbersDepth: '🎯 前3热门数字深度',
     spins: '转',
-    resetAll: '重置全为5转',
-    defaultNotice: '默认深度设置为5转，可获得最佳模式识别与预测精准度。',
+    resetAll: '重置全为10转',
+    defaultNotice: '默认深度设置为10转，可获得最佳模式识别与预测精准度。',
+    othersNotice: '用户可独立配置打几十/打列策略与前3推荐号码的分析深度（5、8、10、12、15转），默认：10转。',
     reloadTitle: '应用重新载入与重置',
     currentVersion: '当前版本：v2.5.0 Pro All-in-One',
     reloadNotice: '随时重新载入或重启应用。您可以选择保留当前所有历史旋转记录与设置，或清空数据全新重启。',
@@ -125,15 +137,21 @@ const labels = {
   ja: {
     setupTitle: 'システム設定',
     langLabel: 'システム言語',
+    fiveCriteriaTitle: '5大予測基準ルックバック深度',
     setupIntro: '5つの予測基準ごとに分析エンジンの過去ルックバック深度を設定します。',
     colorDepth: '🎨 カラー予測スピン深度',
     finalDepth: '🔢 下一桁予測スピン深度',
     seriesDepth: '🧭 セクター予測スピン深度',
     sectorsDepth: '🎯 扇区予測スピン深度',
     pocketsDepth: '📏 ポケット距離スピン深度',
+    othersTitle: 'その他予測ルックバック深度',
+    othersIntro: 'ダズン・カラム戦略およびトップ3推奨数字の分析スピン深度を設定します。',
+    dozensDepth: '📊 ダズン＆カラム予測深度',
+    topNumbersDepth: '🎯 トップ3推奨数字深度',
     spins: 'スピン',
-    resetAll: '全基準を5スピンにリセット',
-    defaultNotice: 'デフォルトのルックバック深度は最適なパターン認識のため5スピンに設定されています。',
+    resetAll: '全基準を10スピンにリセット',
+    defaultNotice: 'デフォルトのルックバック深度は最適なパターン認識のため10スピンに設定されています。',
+    othersNotice: 'ダズン・カラム戦略およびトップ3推奨数字の深度を個別に設定可能（5、8、10、12、15スピン）。デフォルト：10スピン。',
     reloadTitle: 'アプリの再読み込み・リセット',
     currentVersion: '現在のバージョン: v2.5.0 Pro All-in-One',
     reloadNotice: 'いつでもアプリを再読み込み・再起動できます。現在のスピン履歴と設定を保持するか、全データをリセットするか選択可能です。',
@@ -165,15 +183,21 @@ const labels = {
   es: {
     setupTitle: 'Configuración del Sistema',
     langLabel: 'Idioma del Sistema',
+    fiveCriteriaTitle: 'Profundidades de los 5 Criterios de Predicción',
     setupIntro: 'Configura la profundidad de giros para cada uno de los 5 criterios de predicción.',
     colorDepth: '🎨 Profundidad de Predicción de Color',
     finalDepth: '🔢 Profundidad de Predicción de Dígito Final',
     seriesDepth: '🧭 Profundidad de Predicción de Serie',
     sectorsDepth: '🎯 Profundidad de Predicción de Sectores',
     pocketsDepth: '📏 Profundidad de Pasos de Bolsillos',
+    othersTitle: 'Profundidad de Otras Predicciones',
+    othersIntro: 'Configure la profundidad de giros para la estrategia de Docenas y Columnas y los 3 Números Principales.',
+    dozensDepth: '📊 Profundidad de Docenas y Columnas',
+    topNumbersDepth: '🎯 Profundidad de Top 3 Números',
     spins: 'Giros',
-    resetAll: 'Restablecer todos a 5',
-    defaultNotice: 'La profundidad por defecto es de 5 giros para una óptima precisión.',
+    resetAll: 'Restablecer todos a 10',
+    defaultNotice: 'La profundidad por defecto es de 10 giros para una óptima precisión.',
+    othersNotice: 'Configure profundidades independientes para Docenas/Columnas y Top 3 Números (5, 8, 10, 12, 15 giros). Por defecto: 10 giros.',
     reloadTitle: 'Recarga y Reinicio de la App',
     currentVersion: 'Versión Actual: v2.5.0 Pro All-in-One',
     reloadNotice: 'Recargue o reinicie la aplicación en cualquier momento. Elija conservar su historial de giros o borrar todos los datos para reiniciar.',
@@ -205,15 +229,21 @@ const labels = {
   ko: {
     setupTitle: '시스템 설정',
     langLabel: '시스템 언어',
+    fiveCriteriaTitle: '5대 예측 기준 히스토리 깊이',
     setupIntro: '5가지 예측 기준별로 분석 엔진의 히스토리 스핀 탐색 깊이를 설정합니다.',
     colorDepth: '🎨 색상 예측 스핀 깊이',
     finalDepth: '🔢 끝수 예측 스핀 깊이',
     seriesDepth: '🧭 구역 예측 스핀 깊이',
     sectorsDepth: '🎯 섹터 예측 스핀 깊이',
     pocketsDepth: '📏 포켓 스텝 예측 깊이',
+    othersTitle: '기타 예측 히스토리 깊이',
+    othersIntro: '더즌 및 컬럼 전략과 톱 3 추천 번호 예측의 분석 스핀 깊이를 설정합니다.',
+    dozensDepth: '📊 더즌 & 컬럼 예측 깊이',
+    topNumbersDepth: '🎯 톱 3 추천 번호 깊이',
     spins: '스핀',
-    resetAll: '전체 5스핀으로 초기화',
-    defaultNotice: '기본 탐색 깊이는 최적의 패턴 인식을 위해 5스핀으로 설정되어 있습니다.',
+    resetAll: '전체 10스핀으로 초기화',
+    defaultNotice: '기본 탐색 깊이는 최적의 패턴 인식을 위해 10스핀으로 설정되어 있습니다.',
+    othersNotice: '더즌/컬럼 전략 및 톱 3 추천 번호의 탐색 깊이를 개별 설정할 수 있습니다 (5, 8, 10, 12, 15스핀). 기본값: 10스핀.',
     reloadTitle: '앱 새로고침 및 재시작',
     currentVersion: '현재 버전: v2.5.0 Pro All-in-One',
     reloadNotice: '언제든지 앱을 새로고침하거나 재시작할 수 있습니다. 현재 스핀 기록을 유지할지, 모든 데이터를 지우고 재시작할지 선택할 수 있습니다.',
@@ -245,15 +275,21 @@ const labels = {
   vi: {
     setupTitle: 'Cài Đặt Hệ Thống',
     langLabel: 'Ngôn Ngữ Hệ Thống',
+    fiveCriteriaTitle: 'Độ Sâu 5 Tiêu Chí Dự Đoán',
     setupIntro: 'Cấu hình độ sâu vòng quay lịch sử của động cơ phân tích cho từng tiêu chí trong 5 tiêu chí dự đoán.',
     colorDepth: '🎨 Độ Sâu Dự Đoán Màu Sắc',
     finalDepth: '🔢 Độ Sâu Dự Đoán Số Cuối',
     seriesDepth: '🧭 Độ Sâu Dự Đoán Phân Vùng',
     sectorsDepth: '🎯 Độ Sâu Dự Đoán Ô Bánh Xe',
     pocketsDepth: '📏 Độ Sâu Bước Ô Khoảng Cách',
+    othersTitle: 'Độ Sâu Các Dự Đoán Khác',
+    othersIntro: 'Cấu hình độ sâu vòng quay cho chiến lược Hàng Tá / Cột và 3 Số Hàng Đầu.',
+    dozensDepth: '📊 Độ Sâu Hàng Tá & Cột',
+    topNumbersDepth: '🎯 Độ Sâu 3 Số Hàng Đầu',
     spins: 'Vòng Quay',
-    resetAll: 'Đặt Lại Tất Cả Thành 5 Vòng',
-    defaultNotice: 'Độ sâu xem lại mặc định được đặt thành 5 vòng quay để nhận diện mẫu tối ưu.',
+    resetAll: 'Đặt Lại Tất Cả Thành 10 Vòng',
+    defaultNotice: 'Độ sâu xem lại mặc định được đặt thành 10 vòng quay để nhận diện mẫu tối ưu.',
+    othersNotice: 'Cấu hình độ sâu độc lập cho Hàng Tá/Cột và 3 Số Hàng Đầu (5, 8, 10, 12, 15 vòng). Mặc định: 10 vòng.',
     reloadTitle: 'Tải Lại & Đặt Lại Ứng Dụng',
     currentVersion: 'Phiên Bản Hiện Tại: v2.5.0 Pro Tất-Cả-Trong-Một',
     reloadNotice: 'Tải lại hoặc khởi động lại ứng dụng bất kỳ lúc nào. Chọn giữ nguyên lịch sử vòng quay và cài đặt hoặc xóa tất cả dữ liệu để làm mới.',
@@ -295,7 +331,7 @@ export const SetupPage: React.FC<SetupPageProps> = ({
   onActivated = () => {},
 }) => {
   const t = labels[lang] || labels['en'];
-  const depthOptions = [3, 4, 5, 8, 10];
+  const depthOptions = [5, 8, 10, 12, 15];
   const [showReloadModal, setShowReloadModal] = useState<boolean>(false);
 
   const updateDepth = (key: keyof FiveCriteriaDepths, value: number) => {
@@ -303,6 +339,19 @@ export const SetupPage: React.FC<SetupPageProps> = ({
       ...prev,
       [key]: value,
     }));
+  };
+
+  const handleResetAllTo10 = () => {
+    setFiveDepths({
+      colorDepth: 10,
+      finalDepth: 10,
+      seriesDepth: 10,
+      sectorsDepth: 10,
+      pocketsDepth: 10,
+      othersDepth: 10,
+      dozensDepth: 10,
+      topNumbersDepth: 10,
+    });
   };
 
   const handleReloadKeepData = () => {
@@ -328,6 +377,11 @@ export const SetupPage: React.FC<SetupPageProps> = ({
     { key: 'seriesDepth', label: t.seriesDepth },
     { key: 'sectorsDepth', label: t.sectorsDepth },
     { key: 'pocketsDepth', label: t.pocketsDepth },
+  ];
+
+  const othersFields: { key: keyof FiveCriteriaDepths; label: string }[] = [
+    { key: 'dozensDepth', label: t.dozensDepth },
+    { key: 'topNumbersDepth', label: t.topNumbersDepth },
   ];
 
   return (
@@ -395,12 +449,12 @@ export const SetupPage: React.FC<SetupPageProps> = ({
         {/* 5 Criteria Spin Lookback Depth Settings */}
         <div className="space-y-4 border-t border-gray-800/80 pt-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h4 className="text-xs font-black text-gold uppercase tracking-wider">
-              5 Prediction Criteria Lookback Depths
+            <h4 className="text-xs font-black text-gold uppercase tracking-wider flex items-center gap-1.5">
+              <span>🎯</span> {t.fiveCriteriaTitle}
             </h4>
             <button
               type="button"
-              onClick={() => setFiveDepths({ colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 })}
+              onClick={handleResetAllTo10}
               className="px-2.5 py-1 text-[10px] font-black rounded-xl bg-gold/20 text-gold hover:bg-gold hover:text-black transition-all border border-gold/40 active:scale-95 shadow-sm"
             >
               🔄 {t.resetAll}
@@ -409,7 +463,7 @@ export const SetupPage: React.FC<SetupPageProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {depthFields.map(({ key, label }) => {
-              const currentValue = fiveDepths[key] || 5;
+              const currentValue = fiveDepths[key] || 10;
               return (
                 <div key={key} className="bg-zinc-900/90 p-3.5 rounded-2xl border border-gray-800 space-y-2 shadow-sm">
                   <div className="flex justify-between items-center">
@@ -428,7 +482,7 @@ export const SetupPage: React.FC<SetupPageProps> = ({
                         onClick={() => updateDepth(key, opt)}
                         className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
                           currentValue === opt
-                            ? 'bg-gold text-black shadow-md font-extrabold'
+                            ? 'bg-gold text-black shadow-md font-extrabold ring-1 ring-gold'
                             : 'bg-zinc-950 text-gray-400 hover:text-white border border-gray-800 hover:border-gray-700'
                         }`}
                       >
@@ -443,6 +497,58 @@ export const SetupPage: React.FC<SetupPageProps> = ({
 
           <p className="text-[10px] text-gray-400 font-medium italic pt-1">
             💡 {t.defaultNotice}
+          </p>
+        </div>
+
+        {/* Others Prediction Lookback Depth Settings (Dozens & Cols + Top 3 Numbers) */}
+        <div className="space-y-4 border-t border-gray-800/80 pt-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📊</span> {t.othersTitle}
+              </h4>
+              <p className="text-[10px] text-gray-400 font-medium pt-0.5">
+                {t.othersIntro}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {othersFields.map(({ key, label }) => {
+              const currentValue = fiveDepths[key] || 10;
+              return (
+                <div key={key} className="bg-zinc-900/90 p-3.5 rounded-2xl border border-emerald-500/20 space-y-2 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black text-gray-200 uppercase tracking-wide">
+                      {label}
+                    </span>
+                    <span className="text-xs font-black text-emerald-400 bg-zinc-950 px-2 py-0.5 rounded-md border border-gray-800">
+                      {currentValue} {t.spins}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {depthOptions.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => updateDepth(key, opt)}
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+                          currentValue === opt
+                            ? 'bg-emerald-500 text-black shadow-md font-extrabold ring-1 ring-emerald-400'
+                            : 'bg-zinc-950 text-gray-400 hover:text-white border border-gray-800 hover:border-gray-700'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-[10px] text-gray-400 font-medium italic pt-1">
+            💡 {t.othersNotice}
           </p>
         </div>
 

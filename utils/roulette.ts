@@ -82,18 +82,21 @@ export const getNeighbours = (num: number, depth: number = 1): number[] => {
 
 export const getMultiCriteriaPrediction = (
     history: number[],
-    depths: FiveCriteriaDepths = { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 },
+    depths: FiveCriteriaDepths = { colorDepth: 10, finalDepth: 10, seriesDepth: 10, sectorsDepth: 10, pocketsDepth: 10, othersDepth: 10, dozensDepth: 10, topNumbersDepth: 10 },
     sectorSplitMode: SectorSplitMode = '9',
     strategyConfig?: StrategyConfig
 ): ComplexPrediction | null => {
     if (history.length < 3) return null;
 
     const { 
-        colorDepth = 5, 
-        finalDepth = 5, 
-        seriesDepth = 5, 
-        sectorsDepth = 5, 
-        pocketsDepth = 5 
+        colorDepth = 10, 
+        finalDepth = 10, 
+        seriesDepth = 10, 
+        sectorsDepth = 10, 
+        pocketsDepth = 10,
+        othersDepth = 10,
+        dozensDepth = 10,
+        topNumbersDepth = 10,
     } = depths || {};
     const lastNumber = history[history.length - 1];
 
@@ -138,11 +141,12 @@ export const getMultiCriteriaPrediction = (
     }
     const likelySeries: SeriesType | null = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNumber);
 
-    // 4. SECTOR PREDICTION (using ALL spin numbers in history)
+    // 4. SECTOR PREDICTION (using sectorsDepth window)
     const activeSectors = getSectorsForSplitMode(sectorSplitMode);
     const getSectorOfNum = (n: number) => activeSectors.find(s => s.numbers.includes(n)) || activeSectors[0];
 
     const sectorHistory = history.map(getSectorOfNum);
+    const recentSectorHistory = sectorHistory.slice(-Math.max(sectorsDepth, 3));
     const lastSector = getSectorOfNum(lastNumber);
     const lastSectorIdx = activeSectors.findIndex(s => s.id === lastSector.id);
 
@@ -155,13 +159,13 @@ export const getMultiCriteriaPrediction = (
         lastSector.id // Same sector is also self-closed
     ]);
 
-    // Count overall sector hits across ALL history
+    // Count overall sector hits across history window
     const totalSectorHits: Map<string, number> = new Map();
-    sectorHistory.forEach(sec => {
+    recentSectorHistory.forEach(sec => {
         totalSectorHits.set(sec.id, (totalSectorHits.get(sec.id) || 0) + 1);
     });
 
-    // 1-step destination transitions following lastSector across ALL history
+    // 1-step destination transitions following lastSector across history
     const destinationCounts: Map<string, number> = new Map();
     for (let i = 0; i < sectorHistory.length - 1; i++) {
         if (sectorHistory[i].id === lastSector.id) {
@@ -172,8 +176,8 @@ export const getMultiCriteriaPrediction = (
         }
     }
 
-    // Sequence pattern transitions across ALL history
-    const secLook = Math.min(3, sectorHistory.length - 1);
+    // Sequence pattern transitions across history
+    const secLook = Math.min(Math.max(sectorsDepth, 2), sectorHistory.length - 1);
     const seqSectorTransitions: Map<string, number> = new Map();
     if (secLook >= 2) {
         const targetSecSlice = sectorHistory.slice(-secLook);
@@ -255,11 +259,13 @@ export const getMultiCriteriaPrediction = (
     // Dynamic sector confidence based on destination transition strength
     const sectorConfidence = Math.min(98, Math.max(65, 70 + (topScored?.destTransitions || 0) * 8 + (topScored?.isClosed ? 5 : 0)));
 
-    // 5. POCKETS DISTANCE STEP PREDICTION (using ALL spin numbers in history)
+    // 5. POCKETS DISTANCE STEP PREDICTION (using pocketsDepth window)
     const displacements: number[] = [];
-    for (let i = 0; i < history.length - 1; i++) {
-        const start = EUROPEAN_WHEEL_ORDER.indexOf(history[i]);
-        const end = EUROPEAN_WHEEL_ORDER.indexOf(history[i+1]);
+    const pocketWindow = Math.min(Math.max(pocketsDepth + 1, 2), history.length);
+    const pocketHistory = history.slice(-pocketWindow);
+    for (let i = 0; i < pocketHistory.length - 1; i++) {
+        const start = EUROPEAN_WHEEL_ORDER.indexOf(pocketHistory[i]);
+        const end = EUROPEAN_WHEEL_ORDER.indexOf(pocketHistory[i+1]);
         const cwDist = (end - start + 37) % 37;
         const acwDist = (start - end + 37) % 37;
         const minDist = Math.min(cwDist, acwDist);
@@ -295,20 +301,20 @@ export const getMultiCriteriaPrediction = (
     const acwTarget = topSteps[0].acwTarget;
     const allPocketTargets = topSteps.flatMap(s => [s.cwTarget, s.acwTarget]);
 
-    // 2. FINAL DIGIT PREDICTION
+    // 2. FINAL DIGIT PREDICTION (using finalDepth)
     const lastFinal = lastNumber % 10;
-    const finalLookback = Math.min(Math.max(finalDepth, 10), history.length);
+    const finalLookback = Math.min(Math.max(finalDepth, 3), history.length);
     const recentHistory = history.slice(-finalLookback);
 
     const fTransitions: Map<number, number> = new Map();
     const lastTransitionIndex: Map<number, number> = new Map();
     
-    // Primary scan: count transitions following lastFinal across history
-    for (let i = 0; i < history.length - 1; i++) {
-        if (history[i] % 10 === lastFinal) {
-            const next = history[i + 1] % 10;
+    // Primary scan: count transitions following lastFinal across recent history window
+    for (let i = 0; i < recentHistory.length - 1; i++) {
+        if (recentHistory[i] % 10 === lastFinal) {
+            const next = recentHistory[i + 1] % 10;
             fTransitions.set(next, (fTransitions.get(next) || 0) + 1);
-            lastTransitionIndex.set(next, i); // Higher index = occurred more recently after lastFinal
+            lastTransitionIndex.set(next, i);
         }
     }
 
@@ -368,29 +374,31 @@ export const getMultiCriteriaPrediction = (
     const prevSpin = history.length >= 2 ? history[history.length - 2] : null;
     const prevPrevSpin = history.length >= 3 ? history[history.length - 3] : null;
 
-    // Pre-calculate historical pattern follow-up frequencies
+    // Pre-calculate pattern follow-up frequencies within topNumbersDepth window
+    const effectiveTopDepth = topNumbersDepth || othersDepth || 10;
+    const patternHistory = history.slice(-Math.max(effectiveTopDepth, 4));
     const seq3Follows: Map<number, number> = new Map();
     const seq2Follows: Map<number, number> = new Map();
     const seq1Follows: Map<number, number> = new Map();
     const gappedFollows: Map<number, number> = new Map();
 
-    if (history.length >= 4 && prevPrevSpin !== null && prevSpin !== null) {
-        for (let i = 0; i < history.length - 3; i++) {
-            if (history[i] === prevPrevSpin && history[i+1] === prevSpin && history[i+2] === lastSpin) {
-                const nextNum = history[i+3];
+    if (patternHistory.length >= 4 && prevPrevSpin !== null && prevSpin !== null) {
+        for (let i = 0; i < patternHistory.length - 3; i++) {
+            if (patternHistory[i] === prevPrevSpin && patternHistory[i+1] === prevSpin && patternHistory[i+2] === lastSpin) {
+                const nextNum = patternHistory[i+3];
                 seq3Follows.set(nextNum, (seq3Follows.get(nextNum) || 0) + 1);
             }
         }
     }
 
-    if (history.length >= 3 && prevSpin !== null) {
-        for (let i = 0; i < history.length - 2; i++) {
-            if (history[i] === prevSpin && history[i+1] === lastSpin) {
-                const nextNum = history[i+2];
+    if (patternHistory.length >= 3 && prevSpin !== null) {
+        for (let i = 0; i < patternHistory.length - 2; i++) {
+            if (patternHistory[i] === prevSpin && patternHistory[i+1] === lastSpin) {
+                const nextNum = patternHistory[i+2];
                 seq2Follows.set(nextNum, (seq2Follows.get(nextNum) || 0) + 1);
             }
-            if (history[i] === prevSpin && history[i+2] === lastSpin) {
-                const nextNum = history[i+3];
+            if (patternHistory[i] === prevSpin && patternHistory[i+2] === lastSpin) {
+                const nextNum = patternHistory[i+3];
                 if (nextNum !== undefined) {
                     gappedFollows.set(nextNum, (gappedFollows.get(nextNum) || 0) + 1);
                 }
@@ -398,10 +406,10 @@ export const getMultiCriteriaPrediction = (
         }
     }
 
-    if (history.length >= 2) {
-        for (let i = 0; i < history.length - 1; i++) {
-            if (history[i] === lastSpin) {
-                const nextNum = history[i+1];
+    if (patternHistory.length >= 2) {
+        for (let i = 0; i < patternHistory.length - 1; i++) {
+            if (patternHistory[i] === lastSpin) {
+                const nextNum = patternHistory[i+1];
                 seq1Follows.set(nextNum, (seq1Follows.get(nextNum) || 0) + 1);
             }
         }
@@ -539,9 +547,10 @@ export interface StrategyNumberBreakdown {
 export const calculateStrategyBets = (
   history: number[],
   config: StrategyConfig,
-  sectorSplitMode: SectorSplitMode = '9'
+  sectorSplitMode: SectorSplitMode = '9',
+  depths?: FiveCriteriaDepths
 ): Map<number, number> => {
-  const breakdownMap = calculateStrategyBreakdowns(history, config, sectorSplitMode);
+  const breakdownMap = calculateStrategyBreakdowns(history, config, sectorSplitMode, depths);
   const bettingMap = new Map<number, number>();
   breakdownMap.forEach((item, num) => {
     if (item.totalUnits > 0) {
@@ -554,7 +563,8 @@ export const calculateStrategyBets = (
 export const calculateStrategyBreakdowns = (
   history: number[],
   config: StrategyConfig,
-  sectorSplitMode: SectorSplitMode = '9'
+  sectorSplitMode: SectorSplitMode = '9',
+  depths?: FiveCriteriaDepths
 ): Map<number, StrategyNumberBreakdown> => {
   const breakdownMap = new Map<number, StrategyNumberBreakdown>();
 
@@ -581,7 +591,7 @@ export const calculateStrategyBreakdowns = (
 
   const lastSpin = history[history.length - 1];
 
-  const defaultDepths: FiveCriteriaDepths = { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 };
+  const defaultDepths: FiveCriteriaDepths = depths || { colorDepth: 10, finalDepth: 10, seriesDepth: 10, sectorsDepth: 10, pocketsDepth: 10, othersDepth: 10, dozensDepth: 10, topNumbersDepth: 10 };
   const effectiveSectorSplit = config.vectorSectorAmount || sectorSplitMode;
   const pred = getMultiCriteriaPrediction(history, defaultDepths, effectiveSectorSplit, config);
 
@@ -729,16 +739,17 @@ export interface DozensColsStrategyResult {
   hotGridStr: string;
 }
 
-export const calculateDozensAndColsStrategy = (history: number[]): DozensColsStrategyResult => {
-  const total = history.length;
+export const calculateDozensAndColsStrategy = (history: number[], depth?: number): DozensColsStrategyResult => {
+  const historySlice = depth && depth > 0 ? history.slice(-depth) : history;
+  const total = historySlice.length;
   let d1 = 0, d2 = 0, d3 = 0, zeroCount = 0;
   let c1 = 0, c2 = 0, c3 = 0;
   let sleepD1 = -1, sleepD2 = -1, sleepD3 = -1;
   let sleepC1 = -1, sleepC2 = -1, sleepC3 = -1;
   const grid3x3 = Array.from({ length: 3 }, () => [0, 0, 0]);
 
-  for (let i = 0; i < history.length; i++) {
-    const num = history[i];
+  for (let i = 0; i < historySlice.length; i++) {
+    const num = historySlice[i];
     if (num === 0) {
       zeroCount++;
     } else {
@@ -756,9 +767,9 @@ export const calculateDozensAndColsStrategy = (history: number[]): DozensColsStr
     }
   }
 
-  for (let i = history.length - 1; i >= 0; i--) {
-    const num = history[i];
-    const revDist = history.length - 1 - i;
+  for (let i = historySlice.length - 1; i >= 0; i--) {
+    const num = historySlice[i];
+    const revDist = historySlice.length - 1 - i;
     if (num === 0) continue;
 
     const dIdx = num <= 12 ? 0 : num <= 24 ? 1 : 2;
@@ -853,12 +864,15 @@ export interface StrategySummarySignalItem {
 
 export const calculateStrategySignals = (
   history: number[],
-  config: StrategyConfig
+  config: StrategyConfig,
+  depths?: FiveCriteriaDepths,
+  pred?: ComplexPrediction | null
 ): StrategySummarySignalItem[] => {
   const signals: StrategySummarySignalItem[] = [];
   if (history.length < 1) return signals;
 
-  const dc = calculateDozensAndColsStrategy(history);
+  const dozenDepth = depths?.dozensDepth || depths?.othersDepth || 10;
+  const dc = calculateDozensAndColsStrategy(history, dozenDepth);
 
   // 1. DOZENS
   if (config.dozensEnabled) {
@@ -891,12 +905,22 @@ export const calculateStrategySignals = (
     });
   }
 
-  // 3. COLOUR
+  // Derive 5-criteria prediction for synchronized signals
+  const effectivePred = pred !== undefined 
+    ? pred 
+    : (history.length >= 2 ? getMultiCriteriaPrediction(history, depths, config.vectorSectorAmount || '9', config) : null);
+
+  // 3. COLOUR (100% matched with 5-criteria prediction engine)
   if (config.colorEnabled) {
-    const recentColors = history.slice(-10).map(n => NUMBER_COLORS[n]);
-    const redCount = recentColors.filter(c => c === 'red').length;
-    const blackCount = recentColors.filter(c => c === 'black').length;
-    const isRed = redCount >= blackCount;
+    let isRed = true;
+    if (effectivePred?.color) {
+      isRed = effectivePred.color === 'red';
+    } else {
+      const recentColors = history.slice(-10).map(n => NUMBER_COLORS[n]);
+      const redCount = recentColors.filter(c => c === 'red').length;
+      const blackCount = recentColors.filter(c => c === 'black').length;
+      isRed = redCount >= blackCount;
+    }
 
     signals.push({
       type: 'color',
@@ -908,35 +932,47 @@ export const calculateStrategySignals = (
     });
   }
 
-  // 4. SERIES
+  // 4. SERIES (100% matched with 5-criteria prediction engine)
   if (config.seriesEnabled) {
-    const seriesHistory = history.map(getSeriesType);
-    const lastNum = history[history.length - 1];
-    const sTransitions: Map<SeriesType, number> = new Map();
-    const sLook = Math.min(5, seriesHistory.length - 1);
-    if (sLook > 0) {
-      const targetSlice = seriesHistory.slice(-sLook);
-      for (let i = 0; i <= seriesHistory.length - 1 - sLook; i++) {
-        const slice = seriesHistory.slice(i, i + sLook);
-        if (slice.every((s, idx) => s === targetSlice[idx])) {
-          const nextS = seriesHistory[i + sLook];
-          if (nextS && nextS !== 'none') {
-            sTransitions.set(nextS, (sTransitions.get(nextS) || 0) + 1);
+    let likelySeries: SeriesType = 'Top';
+    if (effectivePred?.series && effectivePred.series !== 'none') {
+      likelySeries = effectivePred.series;
+    } else {
+      const seriesDepth = depths?.seriesDepth || 5;
+      const seriesHistory = history.map(getSeriesType);
+      const lastNum = history[history.length - 1];
+      const sTransitions: Map<SeriesType, number> = new Map();
+      const sLook = Math.min(seriesDepth, seriesHistory.length - 1);
+      if (sLook > 0) {
+        const targetSlice = seriesHistory.slice(-sLook);
+        for (let i = 0; i <= seriesHistory.length - 1 - sLook; i++) {
+          const slice = seriesHistory.slice(i, i + sLook);
+          if (slice.every((s, idx) => s === targetSlice[idx])) {
+            const nextS = seriesHistory[i + sLook];
+            if (nextS && nextS !== 'none') {
+              sTransitions.set(nextS, (sTransitions.get(nextS) || 0) + 1);
+            }
           }
         }
       }
+      likelySeries = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNum) || 'Top';
+      if (likelySeries === 'none') likelySeries = 'Top';
     }
-    const likelySeries: SeriesType = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNum) || 'Top';
 
-    let seriesText = 'Voisins (Top)';
-    if (likelySeries === 'Small') seriesText = 'Tiers (Small)';
-    else if (likelySeries === 'Middle') seriesText = 'Orphelins (Mid)';
+    let seriesText = 'Top series';
+    if (likelySeries === 'Small') seriesText = 'Small series';
+    else if (likelySeries === 'Middle') seriesText = 'Orphelins';
+    else if (likelySeries === 'Top') seriesText = 'Top series';
 
     signals.push({
       type: 'series',
       label: 'SERIES',
       value: seriesText,
-      badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30 shadow-2xs font-black',
+      badgeClass: likelySeries === 'Top'
+        ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 shadow-2xs font-black'
+        : likelySeries === 'Small'
+        ? 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30 shadow-2xs font-black'
+        : 'bg-purple-500/15 text-purple-300 border-purple-500/30 shadow-2xs font-black',
     });
   }
 

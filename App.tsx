@@ -211,11 +211,14 @@ const App: React.FC = () => {
   const [fiveDepths, setFiveDepths] = useState<FiveCriteriaDepths>(() => {
     const d = initialSession?.fiveDepths;
     return {
-      colorDepth: d?.colorDepth || 5,
-      finalDepth: d?.finalDepth || 5,
-      seriesDepth: d?.seriesDepth || 5,
-      sectorsDepth: d?.sectorsDepth || 5,
-      pocketsDepth: d?.pocketsDepth || 5,
+      colorDepth: d?.colorDepth || 10,
+      finalDepth: d?.finalDepth || 10,
+      seriesDepth: d?.seriesDepth || 10,
+      sectorsDepth: d?.sectorsDepth || 10,
+      pocketsDepth: d?.pocketsDepth || 10,
+      othersDepth: d?.othersDepth || 10,
+      dozensDepth: d?.dozensDepth || d?.othersDepth || 10,
+      topNumbersDepth: d?.topNumbersDepth || d?.othersDepth || 10,
     };
   });
 
@@ -322,7 +325,15 @@ const App: React.FC = () => {
 
   const totalBaseBetUnits = useMemo(() => { let total = 0; for (const unit of bettingMap.values()) total += unit; return total; }, [bettingMap]);
 
-  const strategySignals = useMemo(() => calculateStrategySignals(spinHistory, strategyConfig), [spinHistory, strategyConfig]);
+  const prediction = useMemo<ComplexPrediction | null>(
+    () => getMultiCriteriaPrediction(spinHistory, fiveDepths, sectorSplitMode, strategyConfig),
+    [spinHistory, fiveDepths, sectorSplitMode, strategyConfig]
+  );
+
+  const strategySignals = useMemo(
+    () => calculateStrategySignals(spinHistory, strategyConfig, fiveDepths, prediction), 
+    [spinHistory, strategyConfig, fiveDepths, prediction]
+  );
   const strategyBreakdownMap = useMemo(() => calculateStrategyBreakdowns(spinHistory, strategyConfig, sectorSplitMode), [spinHistory, strategyConfig, sectorSplitMode]);
 
   useEffect(() => {
@@ -349,11 +360,6 @@ const App: React.FC = () => {
     return newAlerts;
   }, [alertsEnabled]);
 
-  const prediction = useMemo<ComplexPrediction | null>(
-    () => getMultiCriteriaPrediction(spinHistory, fiveDepths, sectorSplitMode, strategyConfig),
-    [spinHistory, fiveDepths, sectorSplitMode, strategyConfig]
-  );
-
   const handleAddSpin = useCallback((num: number) => {
     const now = Date.now(); if (now - lastInputTime.current < INPUT_THROTTLE_MS) return; lastInputTime.current = now;
     if (prediction) {
@@ -368,7 +374,7 @@ const App: React.FC = () => {
         let isDozenHit = false;
         let isColHit = false;
         if (num > 0 && spinHistory.length >= 1) {
-          const dc = calculateDozensAndColsStrategy(spinHistory);
+          const dc = calculateDozensAndColsStrategy(spinHistory, fiveDepths?.dozensDepth || fiveDepths?.othersDepth || 10);
           const winningDozen = num <= 12 ? 1 : num <= 24 ? 2 : 3;
           const winningCol = (num - 1) % 3 + 1;
 

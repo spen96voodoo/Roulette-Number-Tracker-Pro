@@ -88,11 +88,14 @@ export interface GappedPattern {
 export type SeriesType = 'Top' | 'Middle' | 'Small' | 'none';
 
 export interface FiveCriteriaDepths {
-  colorDepth: number;     // 3, 4, 5, 8, 10 (default 5)
-  finalDepth: number;     // 3, 4, 5, 8, 10 (default 5)
-  seriesDepth: number;    // 3, 4, 5, 8, 10 (default 5)
-  sectorsDepth: number;   // 3, 4, 5, 8, 10 (default 5)
-  pocketsDepth: number;   // 3, 4, 5, 8, 10 (default 5)
+  colorDepth: number;       // 5, 8, 10, 12, 15 (default 10)
+  finalDepth: number;       // 5, 8, 10, 12, 15 (default 10)
+  seriesDepth: number;      // 5, 8, 10, 12, 15 (default 10)
+  sectorsDepth: number;     // 5, 8, 10, 12, 15 (default 10)
+  pocketsDepth: number;     // 5, 8, 10, 12, 15 (default 10)
+  othersDepth?: number;     // 5, 8, 10, 12, 15 (default 10)
+  dozensDepth?: number;     // 5, 8, 10, 12, 15 (default 10)
+  topNumbersDepth?: number; // 5, 8, 10, 12, 15 (default 10)
 }
 
 export type SectorSplitMode = '4' | '6' | '8' | '9' | '12' | '0';

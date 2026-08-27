@@ -272,7 +272,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   spinHistory,
   onBack,
   lang,
-  fiveDepths = { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 },
+  fiveDepths = { colorDepth: 10, finalDepth: 10, seriesDepth: 10, sectorsDepth: 10, pocketsDepth: 10, othersDepth: 10, dozensDepth: 10, topNumbersDepth: 10 },
   sectorSplitMode = '9',
   strategyConfig,
   onUpdateStrategyConfig,
@@ -355,7 +355,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
 
         // 2) MULTI-CRITERIA PREDICTION ENGINE
-        const defaultDepths: FiveCriteriaDepths = fiveDepths || { colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 };
+        const defaultDepths: FiveCriteriaDepths = fiveDepths || { colorDepth: 10, finalDepth: 10, seriesDepth: 10, sectorsDepth: 10, pocketsDepth: 10, othersDepth: 10, dozensDepth: 10, topNumbersDepth: 10 };
         const pred = getMultiCriteriaPrediction(hist, defaultDepths, activeSectorMode, strategyConfig);
         if (!pred) continue;
 
@@ -498,7 +498,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
 
         // 8) Dozens and Columns Strategic Signals (2 Dozens 20u + 2 Cols 20u = 40u input)
-        const dc = calculateDozensAndColsStrategy(hist);
+        const dozenDepth = fiveDepths?.dozensDepth || fiveDepths?.othersDepth || 10;
+        const dc = calculateDozensAndColsStrategy(hist, dozenDepth);
         dozensOffered++;
         dozensUnitsIn += 40;
 
