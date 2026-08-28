@@ -212,13 +212,12 @@ const App: React.FC = () => {
     const d = initialSession?.fiveDepths;
     return {
       colorDepth: d?.colorDepth || 10,
-      finalDepth: d?.finalDepth || 10,
       seriesDepth: d?.seriesDepth || 10,
-      sectorsDepth: d?.sectorsDepth || 10,
       pocketsDepth: d?.pocketsDepth || 10,
-      othersDepth: d?.othersDepth || 10,
       dozensDepth: d?.dozensDepth || d?.othersDepth || 10,
       topNumbersDepth: d?.topNumbersDepth || d?.othersDepth || 10,
+      finalDepth: 10,
+      sectorsDepth: 10,
     };
   });
 
@@ -459,7 +458,7 @@ const App: React.FC = () => {
     setLastPrediction(null); 
     setStrategyConfig(DEFAULT_STRATEGY_CONFIG);
     setSectorSplitMode('9');
-    setFiveDepths({ colorDepth: 5, finalDepth: 5, seriesDepth: 5, sectorsDepth: 5, pocketsDepth: 5 });
+    setFiveDepths({ colorDepth: 10, seriesDepth: 10, pocketsDepth: 10, dozensDepth: 10, topNumbersDepth: 10, finalDepth: 10, sectorsDepth: 10 });
     setUnitMultiplier(1);
     setUnitMultiplierInput('1');
     setClosedLookback(8);

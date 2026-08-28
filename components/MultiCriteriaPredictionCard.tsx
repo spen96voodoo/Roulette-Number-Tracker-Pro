@@ -200,7 +200,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
   const isClosedHit = isLastSpinValid && Boolean(lastHitStatus?.closed);
   const isTopHit = isLastSpinValid && (lastHitStatus?.top ?? (lastPrediction?.topNumbers.some(tn => tn.num === lastSpin) ?? false));
   const isColorHit = isLastSpinValid && (lastHitStatus?.color ?? (lastPrediction?.color !== null && lastPrediction?.color === NUMBER_COLORS[lastSpin]));
-  const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (lastPrediction?.finalDigits.slice(0, strategyConfig?.finalDigitsCount || 3).includes(lastSpin % 10) ?? false));
+  const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (Boolean(lastPrediction?.finalDigits && lastPrediction.finalDigits.length > 0 && lastPrediction.finalDigits.slice(0, strategyConfig?.finalDigitsCount || 3).includes(lastSpin % 10))));
   const isSeriesHit = isLastSpinValid && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series !== 'none' && lastPrediction?.series === getSeriesType(lastSpin)));
   const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
   const activeSectorsInLast = lastPrediction?.sector?.topSectors
@@ -501,7 +501,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                   </span>
                 ))
               ) : (
-                <span className="text-[9px] font-black text-gray-500">?</span>
+                <span className="text-[8.5px] font-bold text-gray-500 italic px-1" title="Needs ≥2 rounds (≥2 hits) following last hit in Final Matrix">-</span>
               )}
             </div>
           </div>

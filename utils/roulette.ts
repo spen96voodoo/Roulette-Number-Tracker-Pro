@@ -82,7 +82,7 @@ export const getNeighbours = (num: number, depth: number = 1): number[] => {
 
 export const getMultiCriteriaPrediction = (
     history: number[],
-    depths: FiveCriteriaDepths = { colorDepth: 10, finalDepth: 10, seriesDepth: 10, sectorsDepth: 10, pocketsDepth: 10, othersDepth: 10, dozensDepth: 10, topNumbersDepth: 10 },
+    depths: FiveCriteriaDepths = { colorDepth: 10, seriesDepth: 10, pocketsDepth: 10, dozensDepth: 10, topNumbersDepth: 10, finalDepth: 10, sectorsDepth: 10, othersDepth: 10 },
     sectorSplitMode: SectorSplitMode = '9',
     strategyConfig?: StrategyConfig
 ): ComplexPrediction | null => {
@@ -90,13 +90,11 @@ export const getMultiCriteriaPrediction = (
 
     const { 
         colorDepth = 10, 
-        finalDepth = 10, 
         seriesDepth = 10, 
-        sectorsDepth = 10, 
         pocketsDepth = 10,
-        othersDepth = 10,
         dozensDepth = 10,
         topNumbersDepth = 10,
+        sectorsDepth = 10,
     } = depths || {};
     const lastNumber = history[history.length - 1];
 
@@ -124,7 +122,7 @@ export const getMultiCriteriaPrediction = (
         likelyColor = (Object.keys(colorCounts) as RouletteColor[]).sort((a,b) => colorCounts[b] - colorCounts[a])[0] || 'red';
     }
 
-    // 3. SERIES PREDICTION (using seriesDepth)
+    // 2. SERIES PREDICTION (using seriesDepth)
     const seriesHistory = history.map(getSeriesType);
     const sTransitions: Map<SeriesType, number> = new Map();
     const sLook = Math.min(seriesDepth, seriesHistory.length - 1);
@@ -141,7 +139,7 @@ export const getMultiCriteriaPrediction = (
     }
     const likelySeries: SeriesType | null = Array.from(sTransitions.entries()).sort((a,b) => b[1]-a[1])[0]?.[0] || getSeriesType(lastNumber);
 
-    // 4. SECTOR PREDICTION (using sectorsDepth window)
+    // 3. SECTOR PREDICTION (using last spin destination transitions & wheel neighbors)
     const activeSectors = getSectorsForSplitMode(sectorSplitMode);
     const getSectorOfNum = (n: number) => activeSectors.find(s => s.numbers.includes(n)) || activeSectors[0];
 
@@ -259,7 +257,7 @@ export const getMultiCriteriaPrediction = (
     // Dynamic sector confidence based on destination transition strength
     const sectorConfidence = Math.min(98, Math.max(65, 70 + (topScored?.destTransitions || 0) * 8 + (topScored?.isClosed ? 5 : 0)));
 
-    // 5. POCKETS DISTANCE STEP PREDICTION (using pocketsDepth window)
+    // 4. POCKETS DISTANCE STEP PREDICTION (using pocketsDepth window)
     const displacements: number[] = [];
     const pocketWindow = Math.min(Math.max(pocketsDepth + 1, 2), history.length);
     const pocketHistory = history.slice(-pocketWindow);
@@ -301,25 +299,69 @@ export const getMultiCriteriaPrediction = (
     const acwTarget = topSteps[0].acwTarget;
     const allPocketTargets = topSteps.flatMap(s => [s.cwTarget, s.acwTarget]);
 
-    // 2. FINAL DIGIT PREDICTION (using finalDepth)
-    const lastFinal = lastNumber % 10;
-    const finalLookback = Math.min(Math.max(finalDepth, 3), history.length);
-    const recentHistory = history.slice(-finalLookback);
+    // 5. DOZENS & COLUMNS ANALYSIS (using dozensDepth)
+    const getDozenNum = (num: number) => num === 0 ? 0 : Math.ceil(num / 12);
+    const getColNum = (num: number) => {
+        if (num === 0) return 0;
+        const mod = num % 3;
+        return mod === 1 ? 1 : mod === 2 ? 2 : 3;
+    };
 
+    const effectiveDozensDepth = Math.max(dozensDepth || 10, 3);
+    const dozensSlice = history.slice(-effectiveDozensDepth);
+    const dozenHitCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+    const colHitCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+    const dozenTransitions: Map<number, number> = new Map();
+    const colTransitions: Map<number, number> = new Map();
+
+    const lastDozen = getDozenNum(lastNumber);
+    const lastCol = getColNum(lastNumber);
+
+    for (let i = 0; i < dozensSlice.length; i++) {
+        const num = dozensSlice[i];
+        const dz = getDozenNum(num);
+        const cl = getColNum(num);
+        if (dz >= 1 && dz <= 3) dozenHitCounts[dz] = (dozenHitCounts[dz] || 0) + 1;
+        if (cl >= 1 && cl <= 3) colHitCounts[cl] = (colHitCounts[cl] || 0) + 1;
+
+        if (i < dozensSlice.length - 1) {
+            if (dz === lastDozen && dz > 0) {
+                const nextDz = getDozenNum(dozensSlice[i + 1]);
+                if (nextDz > 0) dozenTransitions.set(nextDz, (dozenTransitions.get(nextDz) || 0) + 1);
+            }
+            if (cl === lastCol && cl > 0) {
+                const nextCl = getColNum(dozensSlice[i + 1]);
+                if (nextCl > 0) colTransitions.set(nextCl, (colTransitions.get(nextCl) || 0) + 1);
+            }
+        }
+    }
+
+    let likelyDozen: number | null = Array.from(dozenTransitions.entries()).sort((a,b) => b[1] - a[1])[0]?.[0] || null;
+    if (!likelyDozen) {
+        likelyDozen = [1, 2, 3].sort((a, b) => (dozenHitCounts[b] || 0) - (dozenHitCounts[a] || 0))[0];
+    }
+
+    let likelyCol: number | null = Array.from(colTransitions.entries()).sort((a,b) => b[1] - a[1])[0]?.[0] || null;
+    if (!likelyCol) {
+        likelyCol = [1, 2, 3].sort((a, b) => (colHitCounts[b] || 0) - (colHitCounts[a] || 0))[0];
+    }
+
+    // 6. FINAL DIGIT PREDICTION (Strictly based on Final Matrix transitions with >= 2 rounds)
+    const lastFinal = lastNumber % 10;
     const fTransitions: Map<number, number> = new Map();
     const lastTransitionIndex: Map<number, number> = new Map();
     
-    // Primary scan: count transitions following lastFinal across recent history window
-    for (let i = 0; i < recentHistory.length - 1; i++) {
-        if (recentHistory[i] % 10 === lastFinal) {
-            const next = recentHistory[i + 1] % 10;
+    // Scan transitions following lastFinal across session history (matching Final Number Matrix active row)
+    for (let i = 0; i < history.length - 1; i++) {
+        if (history[i] % 10 === lastFinal) {
+            const next = history[i + 1] % 10;
             fTransitions.set(next, (fTransitions.get(next) || 0) + 1);
             lastTransitionIndex.set(next, i);
         }
     }
 
     const finalCounts: Map<number, number> = new Map();
-    recentHistory.forEach(n => {
+    history.forEach(n => {
         const f = n % 10;
         finalCounts.set(f, (finalCounts.get(f) || 0) + 1);
     });
@@ -335,14 +377,20 @@ export const getMultiCriteriaPrediction = (
         const sectorSynergy = likelySector ? candidateNums.filter(n => likelySector.numbers.includes(n)).length : 0;
         const seriesSynergy = candidateNums.filter(n => getSeriesType(n) === likelySeries).length;
         const pocketSynergy = candidateNums.filter(n => allPocketTargets.includes(n)).length;
+        const dozenSynergy = candidateNums.filter(n => getDozenNum(n) === likelyDozen).length;
+        const colSynergy = candidateNums.filter(n => getColNum(n) === likelyCol).length;
 
-        const synergyScore = (colorSynergy * 15) + (sectorSynergy * 20) + (seriesSynergy * 15) + (pocketSynergy * 25);
+        const synergyScore = (colorSynergy * 15) + (sectorSynergy * 20) + (seriesSynergy * 15) + (pocketSynergy * 25) + (dozenSynergy * 10) + (colSynergy * 10);
 
         return { digit: d, transCount, synergyScore, lastTransIdx, totalCount };
     });
 
-    digitScored.sort((a, b) => {
-        // Primary Key — Transition Frequency Following Latest Spin Ending Digit (transCount)
+    // STRICT REQUIREMENT: Only predict digits that have 2 or more hits (>= 2 rounds) following lastFinal.
+    // If all transitions for lastFinal are under 2 rounds (< 2), no final digit prediction is made (empty array).
+    const qualifiedDigits = digitScored.filter(item => item.transCount >= 2);
+
+    qualifiedDigits.sort((a, b) => {
+        // Primary Key — Transition Frequency Following Latest Spin Ending Digit (transCount: highest first)
         if (b.transCount !== a.transCount) {
             return b.transCount - a.transCount;
         }
@@ -362,12 +410,13 @@ export const getMultiCriteriaPrediction = (
         return a.digit - b.digit;
     });
 
-    // Limit strictly to user configured count: 2, 3, or 4 (default 3)
+    // Limit up to user configured max count (e.g. 2, 3, or 4), but ONLY including digits with >= 2 hits!
     const requestedFinalCount = strategyConfig?.finalDigitsCount ?? 3;
     const finalDigitsCountToUse = Math.min(Math.max(requestedFinalCount, 2), 4);
-    const finalDigits = digitScored.slice(0, finalDigitsCountToUse).map(item => item.digit);
+    const finalDigits = qualifiedDigits.slice(0, finalDigitsCountToUse).map(item => item.digit);
 
-    // COMPOSITE SCORING FOR ALL 37 NUMBERS ACROSS 5 CRITERIA + PATTERN ALERTS
+    // 7. COMPOSITE SCORING FOR ALL 37 NUMBERS ACROSS ALL CRITERIA:
+    // Final Matrix, Pockets, Sectors, Colour, Series, Dozens, Columns, and Pattern Sequences
     const scores: Map<number, { score: number; matched: string[] }> = new Map();
 
     const lastSpin = history[history.length - 1];
@@ -375,8 +424,8 @@ export const getMultiCriteriaPrediction = (
     const prevPrevSpin = history.length >= 3 ? history[history.length - 3] : null;
 
     // Pre-calculate pattern follow-up frequencies within topNumbersDepth window
-    const effectiveTopDepth = topNumbersDepth || othersDepth || 10;
-    const patternHistory = history.slice(-Math.max(effectiveTopDepth, 4));
+    const effectiveTopDepth = Math.max(topNumbersDepth || 10, 4);
+    const patternHistory = history.slice(-effectiveTopDepth);
     const seq3Follows: Map<number, number> = new Map();
     const seq2Follows: Map<number, number> = new Map();
     const seq1Follows: Map<number, number> = new Map();
@@ -420,14 +469,16 @@ export const getMultiCriteriaPrediction = (
         const matched: string[] = [];
         const nFD = n % 10;
         const nSeries = getSeriesType(n);
+        const nDozen = getDozenNum(n);
+        const nCol = getColNum(n);
 
-        // 1. Colour Criteria
+        // A. Colour Criteria (colorDepth)
         if (likelyColor && NUMBER_COLORS[n] === likelyColor) {
             score += 20;
             matched.push("Colour");
         }
 
-        // 2. Final Digit Criteria
+        // B. Final Digit Matrix Criteria (>= 2 hits matrix convergence)
         if (finalDigits.length > 0 && finalDigits.includes(nFD)) {
             if (finalDigits[0] === nFD) {
                 score += 35;
@@ -437,19 +488,19 @@ export const getMultiCriteriaPrediction = (
             matched.push("Final");
         }
 
-        // 3. Series Criteria
+        // C. Series Criteria (seriesDepth)
         if (likelySeries && nSeries === likelySeries) {
             score += 25;
             matched.push("Series");
         }
 
-        // 4. Wheel Sector Criteria
+        // D. Wheel Sector Criteria (destination transitions & adjacent sectors)
         if (likelySector.numbers.includes(n)) {
             score += 30;
             matched.push("Sector");
         }
 
-        // 5. Pocket Distance Steps Criteria (Top 1-3 CW/ACW)
+        // E. Pocket Distance Steps Criteria (pocketsDepth)
         if (n === cwTarget || n === acwTarget) {
             score += 40;
             matched.push("Pocket");
@@ -458,7 +509,17 @@ export const getMultiCriteriaPrediction = (
             matched.push("Pocket");
         }
 
-        // 6. Pattern Alert & Sequence Intelligence Criteria
+        // F. Dozen & Column Criteria (dozensDepth)
+        if (likelyDozen && nDozen === likelyDozen) {
+            score += 20;
+            matched.push("Dozen");
+        }
+        if (likelyCol && nCol === likelyCol) {
+            score += 20;
+            matched.push("Column");
+        }
+
+        // G. Pattern Alert & Sequence Intelligence Criteria (topNumbersDepth)
         let patternScore = 0;
         if (seq3Follows.has(n)) {
             patternScore += (seq3Follows.get(n) || 0) * 60;
@@ -478,9 +539,11 @@ export const getMultiCriteriaPrediction = (
             matched.push("Pattern");
         }
 
-        // Multi-criteria synergy multipliers
+        // Multi-criteria synergy multipliers for high confluence
         const uniqueCriteriaCount = matched.length;
-        if (uniqueCriteriaCount >= 5) {
+        if (uniqueCriteriaCount >= 6) {
+            score *= 2.5;
+        } else if (uniqueCriteriaCount >= 5) {
             score *= 2.2;
         } else if (uniqueCriteriaCount >= 4) {
             score *= 1.7;

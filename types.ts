@@ -88,14 +88,14 @@ export interface GappedPattern {
 export type SeriesType = 'Top' | 'Middle' | 'Small' | 'none';
 
 export interface FiveCriteriaDepths {
-  colorDepth: number;       // 5, 8, 10, 12, 15 (default 10)
-  finalDepth: number;       // 5, 8, 10, 12, 15 (default 10)
-  seriesDepth: number;      // 5, 8, 10, 12, 15 (default 10)
-  sectorsDepth: number;     // 5, 8, 10, 12, 15 (default 10)
-  pocketsDepth: number;     // 5, 8, 10, 12, 15 (default 10)
-  othersDepth?: number;     // 5, 8, 10, 12, 15 (default 10)
-  dozensDepth?: number;     // 5, 8, 10, 12, 15 (default 10)
-  topNumbersDepth?: number; // 5, 8, 10, 12, 15 (default 10)
+  colorDepth: number;       // 5, 8, 10, 12, 15 (default 10) - Colour Depth
+  seriesDepth: number;      // 5, 8, 10, 12, 15 (default 10) - Series Depth
+  pocketsDepth: number;     // 5, 8, 10, 12, 15 (default 10) - Pockets Step Depth
+  dozensDepth: number;      // 5, 8, 10, 12, 15 (default 10) - Dozens & Columns Depth
+  topNumbersDepth: number;  // 5, 8, 10, 12, 15 (default 10) - Top 3 Numbers Depth
+  finalDepth?: number;      // legacy fallback (Final Matrix uses full session ≥2x transitions)
+  sectorsDepth?: number;    // legacy fallback (Sectors use destination transitions from last spin)
+  othersDepth?: number;
 }
 
 export type SectorSplitMode = '4' | '6' | '8' | '9' | '12' | '0';
