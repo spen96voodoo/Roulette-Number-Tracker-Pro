@@ -1,6 +1,6 @@
 
 import { VOISINS_SERIES, ORPHELINS_SERIES, TIERS_SERIES, EUROPEAN_WHEEL_ORDER, NUMBER_COLORS, ROULETTE_NUMBERS, WHEEL_SECTORS } from '../constants';
-import type { SeriesType, RouletteColor, ComplexPrediction, FiveCriteriaDepths, SectorSplitMode, StrategyConfig } from '../types';
+import type { SeriesType, RouletteColor, ComplexPrediction, FiveCriteriaDepths, SectorSplitMode, StrategyConfig, PocketStepItem } from '../types';
 
 export const getSeriesType = (num: number): SeriesType => {
     if (VOISINS_SERIES.includes(num)) return 'Top';
@@ -257,46 +257,80 @@ export const getMultiCriteriaPrediction = (
     // Dynamic sector confidence based on destination transition strength
     const sectorConfidence = Math.min(98, Math.max(65, 70 + (topScored?.destTransitions || 0) * 8 + (topScored?.isClosed ? 5 : 0)));
 
-    // 4. POCKETS DISTANCE STEP PREDICTION (using pocketsDepth window)
-    const displacements: number[] = [];
-    const pocketWindow = Math.min(Math.max(pocketsDepth + 1, 2), history.length);
-    const pocketHistory = history.slice(-pocketWindow);
-    for (let i = 0; i < pocketHistory.length - 1; i++) {
-        const start = EUROPEAN_WHEEL_ORDER.indexOf(pocketHistory[i]);
-        const end = EUROPEAN_WHEEL_ORDER.indexOf(pocketHistory[i+1]);
-        const cwDist = (end - start + 37) % 37;
-        const acwDist = (start - end + 37) % 37;
-        const minDist = Math.min(cwDist, acwDist);
-        if (minDist > 0) {
-            displacements.push(minDist);
+    // 4. POCKETS DISTANCE STEP PREDICTION (Ranked by highest hit frequency with recency tie-breaker)
+    const allTransitions: { fromNum: number; toNum: number; distance: number; index: number }[] = [];
+    for (let i = 0; i < history.length - 1; i++) {
+        const fromNum = history[i];
+        const toNum = history[i+1];
+        const fromIdx = EUROPEAN_WHEEL_ORDER.indexOf(fromNum);
+        const toIdx = EUROPEAN_WHEEL_ORDER.indexOf(toNum);
+        if (fromIdx !== -1 && toIdx !== -1) {
+            const cwDist = (toIdx - fromIdx + 37) % 37;
+            const acwDist = (fromIdx - toIdx + 37) % 37;
+            const minDist = Math.min(cwDist, acwDist);
+            allTransitions.push({
+                fromNum,
+                toNum,
+                distance: minDist,
+                index: i,
+            });
         }
     }
-    const dispCounts: Map<number, number> = new Map();
-    displacements.forEach(d => dispCounts.set(d, (dispCounts.get(d) || 0) + 1));
-    
-    const sortedDisps = Array.from(dispCounts.entries()).sort((a,b) => b[1]-a[1]).map(e => e[0]);
-    // Ensure we have top 1 through top 5 distinct distance steps (defaulting to 1..10 if needed)
-    const fallbackSteps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const topDisps: number[] = [];
-    for (const d of sortedDisps) {
-        if (!topDisps.includes(d)) topDisps.push(d);
-        if (topDisps.length === 5) break;
+
+    const distStats = new Map<number, { hits: number; lastSeenIndex: number }>();
+    for (let d = 0; d <= 18; d++) {
+        distStats.set(d, { hits: 0, lastSeenIndex: -1 });
     }
-    for (const fb of fallbackSteps) {
-        if (topDisps.length >= 5) break;
-        if (!topDisps.includes(fb)) topDisps.push(fb);
-    }
+
+    allTransitions.forEach(tr => {
+        const cur = distStats.get(tr.distance) || { hits: 0, lastSeenIndex: -1 };
+        cur.hits += 1;
+        cur.lastSeenIndex = tr.index;
+        distStats.set(tr.distance, cur);
+    });
+
+    const totalTransitions = allTransitions.length;
+
+    // Rank distances (0-18):
+    // 1. Primary: Highest hits descending (e.g., 9 hits > 8 hits > 7 hits)
+    // 2. Tie-breaker: Most recent distance that opened (lastSeenIndex descending, closer to latest spin)
+    // 3. Fallback: smaller distance value (preferring > 0 when hits are 0)
+    const rankedDistances = Array.from(distStats.entries()).sort((a, b) => {
+        const hitsA = a[1].hits;
+        const hitsB = b[1].hits;
+        if (hitsA !== hitsB) {
+            return hitsB - hitsA;
+        }
+        const recencyA = a[1].lastSeenIndex;
+        const recencyB = b[1].lastSeenIndex;
+        if (recencyA !== recencyB) {
+            return recencyB - recencyA;
+        }
+        if (hitsA === 0 && hitsB === 0) {
+            if (a[0] === 0) return 1;
+            if (b[0] === 0) return -1;
+        }
+        return a[0] - b[0];
+    });
 
     const lastWheelIdx = EUROPEAN_WHEEL_ORDER.indexOf(lastNumber);
-    const topSteps = topDisps.map(dist => ({
-        distance: dist,
-        cwTarget: EUROPEAN_WHEEL_ORDER[(lastWheelIdx + dist) % 37],
-        acwTarget: EUROPEAN_WHEEL_ORDER[(lastWheelIdx - dist + 37) % 37],
-    }));
+    const topSteps: PocketStepItem[] = rankedDistances.slice(0, 5).map(([dist, st]) => {
+        const cwTarget = EUROPEAN_WHEEL_ORDER[(lastWheelIdx + dist) % 37];
+        const acwTarget = EUROPEAN_WHEEL_ORDER[(lastWheelIdx - dist + 37) % 37];
+        const percentage = totalTransitions > 0 ? Math.round((st.hits / totalTransitions) * 1000) / 10 : 0;
+        return {
+            distance: dist,
+            cwTarget,
+            acwTarget,
+            hits: st.hits,
+            percentage,
+            lastSeenIndex: st.lastSeenIndex,
+        };
+    });
 
-    const topDisp = topSteps[0].distance;
-    const cwTarget = topSteps[0].cwTarget;
-    const acwTarget = topSteps[0].acwTarget;
+    const topDisp = topSteps[0]?.distance ?? 1;
+    const cwTarget = topSteps[0]?.cwTarget ?? lastNumber;
+    const acwTarget = topSteps[0]?.acwTarget ?? lastNumber;
     const allPocketTargets = topSteps.flatMap(s => [s.cwTarget, s.acwTarget]);
 
     // 5. DOZENS & COLUMNS ANALYSIS (using dozensDepth)

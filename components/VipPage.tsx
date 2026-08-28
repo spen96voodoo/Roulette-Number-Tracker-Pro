@@ -208,37 +208,64 @@ export const VipPage: React.FC<PocketDistancePageProps> = ({
     return list;
   }, [spinHistory]);
 
-  // Distance frequency map (0-18)
-  const distanceFreq = useMemo(() => {
-    const map = new Map<number, number>();
-    for (let d = 0; d <= 18; d++) map.set(d, 0);
+  // Distance frequency map (0-18) and recency tracking
+  const distanceStats = useMemo(() => {
+    const map = new Map<number, { count: number; lastSeenIndex: number }>();
+    for (let d = 0; d <= 18; d++) map.set(d, { count: 0, lastSeenIndex: -1 });
 
-    transitions.forEach((tr) => {
-      map.set(tr.distance, (map.get(tr.distance) || 0) + 1);
+    transitions.forEach((tr, idx) => {
+      const cur = map.get(tr.distance) || { count: 0, lastSeenIndex: -1 };
+      cur.count += 1;
+      cur.lastSeenIndex = idx;
+      map.set(tr.distance, cur);
     });
 
     return map;
   }, [transitions]);
 
-  // Top 5 popular pocket distances
+  const distanceFreq = useMemo(() => {
+    const map = new Map<number, number>();
+    distanceStats.forEach((val, key) => {
+      map.set(key, val.count);
+    });
+    return map;
+  }, [distanceStats]);
+
+  // Top 5 popular pocket distances: ranked by highest hits + recency tie-breaker
   const top5Distances = useMemo(() => {
-    const sorted = Array.from(distanceFreq.entries()).sort((a, b) => b[1] - a[1]);
+    const sorted = Array.from(distanceStats.entries()).sort((a, b) => {
+      const countA = a[1].count;
+      const countB = b[1].count;
+      if (countA !== countB) {
+        return countB - countA; // Highest hit frequency first
+      }
+      const recencyA = a[1].lastSeenIndex;
+      const recencyB = b[1].lastSeenIndex;
+      if (recencyA !== recencyB) {
+        return recencyB - recencyA; // Most recent opening distance wins tie-breaker
+      }
+      if (countA === 0 && countB === 0) {
+        if (a[0] === 0) return 1;
+        if (b[0] === 0) return -1;
+      }
+      return a[0] - b[0];
+    });
     const totalTransitions = transitions.length;
 
     // Pick top 5
-    return sorted.slice(0, 5).map(([distance, count], rankIndex) => {
-      const percentage = totalTransitions > 0 ? (count / totalTransitions) * 100 : 0;
+    return sorted.slice(0, 5).map(([distance, stat], rankIndex) => {
+      const percentage = totalTransitions > 0 ? (stat.count / totalTransitions) * 100 : 0;
       const targets = latestSpin !== null ? getTargetsForDistance(latestSpin, distance) : { cwNum: 0, acwNum: 0 };
 
       return {
         rank: rankIndex + 1,
         distance,
-        count,
+        count: stat.count,
         percentage,
         targets,
       };
     });
-  }, [distanceFreq, transitions.length, latestSpin]);
+  }, [distanceStats, transitions.length, latestSpin]);
 
   return (
     <div className="animate-fade-in space-y-4 pb-12">

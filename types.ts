@@ -131,6 +131,9 @@ export interface PocketStepItem {
   distance: number;
   cwTarget: number;
   acwTarget: number;
+  hits?: number;
+  percentage?: number;
+  lastSeenIndex?: number;
 }
 
 export interface PocketPredictionData {

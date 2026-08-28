@@ -768,7 +768,14 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                   >
                     <div className="flex items-center justify-between text-[8px] font-black text-gray-400 mb-0.5">
                       <span className="text-gold">#{sIdx + 1}</span>
-                      <span>+{stepItem.distance} pk</span>
+                      <span className="flex items-center gap-1">
+                        <span>Dist {stepItem.distance}</span>
+                        {stepItem.hits !== undefined && stepItem.hits > 0 && (
+                          <span className="text-[7px] text-emerald-400 font-black bg-emerald-950/80 px-1 py-0.2 rounded border border-emerald-800/50">
+                            {stepItem.hits}h
+                          </span>
+                        )}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-around gap-0.5">
