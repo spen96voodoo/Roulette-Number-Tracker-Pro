@@ -8,6 +8,7 @@ import { PatternDisplay } from './PatternDisplay';
 import { VipPage } from './VipPage';
 import { NumberGrid } from './NumberGrid';
 import { VipActivationCard } from './VipActivationCard';
+import { EmptySpinReminderBanner } from './EmptySpinReminderBanner';
 import type { Language, ComplexPrediction, Pattern, GappedPattern, SectorSplitMode } from '../types';
 import { NUMBER_COLORS, RED_NUMBERS, BLACK_NUMBERS } from '../constants';
 
@@ -303,19 +304,12 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<FunctionTab>(initialTab);
   const [showQuickGrid, setShowQuickGrid] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const t = funcTranslations[lang] || funcTranslations.en;
-
-  const vipLockedTabs: FunctionTab[] = ['cylinder', 'distance', 'series', 'matrix'];
 
   const handleTabClick = (tabId: FunctionTab) => {
     if (tabId === 'strategy') {
       onOpenStrategy?.();
       return;
-    }
-    if (!isPro && vipLockedTabs.includes(tabId)) {
-      setToastMsg('请输入有效激活码解锁');
-      setTimeout(() => setToastMsg(null), 3000);
     }
     setActiveTab(tabId);
   };
@@ -446,6 +440,10 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
         </div>
       )}
 
+      {spinHistory.length === 0 && (
+        <EmptySpinReminderBanner lang={lang} />
+      )}
+
       {/* Recent Spins Strip (Latest spin first on the left) */}
       <div className="bg-zinc-900/90 p-2.5 rounded-xl border border-gray-800/80 flex items-center justify-between gap-2 overflow-x-auto">
         <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider flex-shrink-0">
@@ -474,18 +472,9 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
         </div>
       </div>
 
-      {/* Toast Alert Popup for Locked Tab Click */}
-      {toastMsg && (
-        <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 bg-amber-500 text-black px-4 py-2 rounded-xl text-xs font-black shadow-2xl flex items-center gap-2 border border-amber-300 animate-bounce">
-          <span>🔒</span>
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
       {/* Function Modules Tabs Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 pt-0.5">
         {tabList.map(tab => {
-          const isLocked = !isPro && vipLockedTabs.includes(tab.id);
           const isStrategyTab = tab.id === 'strategy';
           return (
             <button
@@ -499,9 +488,8 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
                   : 'bg-zinc-900 text-gray-300 border-gray-800 hover:bg-zinc-800 hover:border-gold/30'
               }`}
             >
-              <span>{isLocked ? '🔒' : tab.icon}</span>
+              <span>{tab.icon}</span>
               <span>{tab.label}</span>
-              {isLocked && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded">VIP</span>}
             </button>
           );
         })}
@@ -513,13 +501,8 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
         <div className="flex items-center justify-between border-b border-gray-800 pb-3">
           <div>
             <h3 className="text-sm font-black text-gold uppercase tracking-widest flex items-center gap-2">
-              <span>{!isPro && vipLockedTabs.includes(activeTab) ? '🔒' : tabList.find(t => t.id === activeTab)?.icon}</span>
+              <span>{tabList.find(t => t.id === activeTab)?.icon}</span>
               <span>{tabList.find(t => t.id === activeTab)?.label}</span>
-              {!isPro && vipLockedTabs.includes(activeTab) && (
-                <span className="text-[9px] bg-amber-500 text-black px-2 py-0.5 rounded font-black">
-                  VIP LOCKED
-                </span>
-              )}
             </h3>
             <p className="text-[11px] text-gray-400 font-medium mt-0.5">
               {activeTab === 'cylinder' && t.cylinderDesc}
@@ -536,30 +519,7 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
           </span>
         </div>
 
-        {/* If feature is VIP locked and user is not active, render lock message & activation card */}
-        {!isPro && vipLockedTabs.includes(activeTab) ? (
-          <div className="bg-zinc-950 p-6 rounded-2xl border border-amber-500/50 space-y-4 text-center">
-            <div className="w-14 h-14 mx-auto rounded-full bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-3xl shadow-inner">
-              🔒
-            </div>
-
-            <div className="space-y-1">
-              <h4 className="text-sm font-black text-amber-400 uppercase tracking-wider">
-                【{tabList.find(t => t.id === activeTab)?.label}】已锁定
-              </h4>
-              <p className="text-xs font-bold text-amber-300">
-                请输入有效激活码解锁
-              </p>
-              <p className="text-[11px] text-gray-400">
-                Please enter a valid activation code to unlock this VIP function.
-              </p>
-            </div>
-
-            <VipActivationCard isPro={isPro} onActivated={onActivated} lang={lang} />
-          </div>
-        ) : (
-          <>
-            {/* Function 1: Cylinder Spacing Engine */}
+        {/* Function 1: Cylinder Spacing Engine */}
         {activeTab === 'cylinder' && (
           <div className="space-y-4">
             <RouletteWheelTracker history={spinHistory} lang={lang} splitMode={sectorSplitMode} onSplitModeChange={onSectorSplitChange} />
@@ -631,8 +591,6 @@ export const FunctionsPage: React.FC<FunctionsPageProps> = ({
               lang={lang}
             />
           </div>
-        )}
-          </>
         )}
       </div>
     </div>

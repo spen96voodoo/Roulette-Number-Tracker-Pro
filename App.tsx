@@ -9,6 +9,9 @@ import { DashboardPage } from './components/DashboardPage';
 import { StrategyPage } from './components/StrategyPage';
 import { FunctionsPage, FunctionTab } from './components/FunctionsPage';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { ActivationLimitModal } from './components/ActivationLimitModal';
+import { EmptySpinReminderBanner } from './components/EmptySpinReminderBanner';
+import { FifthSpinReminderModal } from './components/FifthSpinReminderModal';
 import type { ToastData, SeriesType, ComplexPrediction, RouletteColor, Language, PageType, FiveCriteriaDepths, SectorSplitMode, StrategyConfig, HitStatus } from './types';
 import { DEFAULT_STRATEGY_CONFIG } from './types';
 import { getNeighbours, getSeriesType, getMultiCriteriaPrediction, calculateStrategyBets, calculateStrategySignals, calculateStrategyBreakdowns, calculateDozensAndColsStrategy } from './utils/roulette';
@@ -18,6 +21,7 @@ import { NUMBER_COLORS, ROULETTE_NUMBERS, EUROPEAN_WHEEL_ORDER } from './constan
 import { getIsVipActivated } from './lib/license';
 
 const MIN_SPINS_FOR_PATTERNS = 6;
+const MAX_FREE_SPINS = 50;
 const SESSION_STORAGE_KEY = 'rouletteSession_v10';
 const INPUT_THROTTLE_MS = 400;
 
@@ -182,6 +186,9 @@ const App: React.FC = () => {
   const [activeFunctionTab, setActiveFunctionTab] = useState<FunctionTab>('cylinder');
   const [currentPage, setCurrentPage] = useState<PageType>('main');
   const [showClearConfirmation, setShowClearConfirmation] = useState<boolean>(false);
+  const [showActivationModal, setShowActivationModal] = useState<boolean>(false);
+  const [showFifthSpinModal, setShowFifthSpinModal] = useState<boolean>(false);
+  const [hasShownFifthSpinReminder, setHasShownFifthSpinReminder] = useState<boolean>(() => initialSession?.hasShownFifthSpinReminder || false);
   const [bettingMap, setBettingMap] = useState<Map<number, number>>(new Map());
   const [balance, setBalance] = useState<number>(0);
   const [lastHitStatus, setLastHitStatus] = useState<HitStatus | null>(null);
@@ -306,10 +313,11 @@ const App: React.FC = () => {
       strategyConfig: strategyConfig,
       theme: theme, 
       lang: lang, 
-      fiveDepths 
+      fiveDepths,
+      hasShownFifthSpinReminder
     };
     safeSetStorage(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
-  }, [spinHistory, alerts, unitMultiplier, betStrategyMode, neighbourDepth, closedLookback, isStrategyEnabled, strategyConfig, theme, lang, fiveDepths]);
+  }, [spinHistory, alerts, unitMultiplier, betStrategyMode, neighbourDepth, closedLookback, isStrategyEnabled, strategyConfig, theme, lang, fiveDepths, hasShownFifthSpinReminder]);
 
 
   const calculateBets = useCallback((history: number[], config: StrategyConfig, mode: SectorSplitMode): Map<number, number> => {
@@ -360,93 +368,147 @@ const App: React.FC = () => {
   }, [alertsEnabled]);
 
   const handleAddSpin = useCallback((num: number) => {
-    const now = Date.now(); if (now - lastInputTime.current < INPUT_THROTTLE_MS) return; lastInputTime.current = now;
+    const now = Date.now();
+    if (now - lastInputTime.current < INPUT_THROTTLE_MS) return;
+    lastInputTime.current = now;
+
+    // Enforce 50 spin number limit for non-activated users
+    if (!isPro && spinHistory.length >= MAX_FREE_SPINS) {
+      setShowActivationModal(true);
+      triggerHaptic('error');
+      return;
+    }
+
+    // Check closed / betting chart targets for this spin
+    let isClosedHit = false;
+    let targetUnits = 0;
+    if (strategyConfig.closedEnabled && spinHistory.length > 0) {
+      const recentHistory = spinHistory.slice(-strategyConfig.closedLookback);
+      const uniqueHistoryByRecency = [...new Set([...recentHistory].reverse())];
+      const candidatePool: number[] = [];
+      uniqueHistoryByRecency.forEach(prevNum => {
+        if (prevNum !== -1) {
+          candidatePool.push(...getNeighbours(prevNum, strategyConfig.closedNeighbourDepth === 5 ? 2 : 1));
+        }
+      });
+      const closedCandidates = [...new Set(candidatePool)].filter(n => n !== -1);
+      const isCandidateHit = closedCandidates.includes(num);
+
+      const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
+      targetUnits = targetBets.get(num) || (isCandidateHit ? (strategyConfig.closedProgression === '235' ? 2 : 1) : 0);
+      isClosedHit = isCandidateHit || (targetBets.get(num) !== undefined && targetBets.get(num)! > 0);
+    } else if (spinHistory.length > 0) {
+      const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
+      targetUnits = targetBets.get(num) || 0;
+      isClosedHit = targetUnits > 0;
+    }
+
+    // Check Dozens and Columns strategy
+    let isDozenHit = false;
+    let isColHit = false;
+    if (num > 0 && spinHistory.length >= 1) {
+      const dc = calculateDozensAndColsStrategy(spinHistory, fiveDepths?.dozensDepth || fiveDepths?.othersDepth || 10);
+      const winningDozen = num <= 12 ? 1 : num <= 24 ? 2 : 3;
+      const winningCol = (num - 1) % 3 + 1;
+
+      const sortedDozensBySleep = [...dc.dozensArr].sort((a, b) => b.sleep - a.sleep);
+      const sortedDozensByHit = [...dc.dozensArr].sort((a, b) => b.count - a.count);
+      let recDozens: number[] = [];
+      if (sortedDozensBySleep[0].sleep >= 5) {
+        const overdueD = sortedDozensBySleep[0].id === '1st Dozen' ? 1 : sortedDozensBySleep[0].id === '2nd Dozen' ? 2 : 3;
+        const hitPartnerObj = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1] : sortedDozensByHit[0];
+        const partnerD = hitPartnerObj.id === '1st Dozen' ? 1 : hitPartnerObj.id === '2nd Dozen' ? 2 : 3;
+        recDozens = [overdueD, partnerD];
+      } else {
+        const d1 = sortedDozensByHit[0].id === '1st Dozen' ? 1 : sortedDozensByHit[0].id === '2nd Dozen' ? 2 : 3;
+        const d2 = sortedDozensByHit[1].id === '1st Dozen' ? 1 : sortedDozensByHit[1].id === '2nd Dozen' ? 2 : 3;
+        recDozens = [d1, d2];
+      }
+      isDozenHit = recDozens.includes(winningDozen);
+
+      const sortedColsBySleep = [...dc.colsArr].sort((a, b) => b.sleep - a.sleep);
+      const sortedColsByHit = [...dc.colsArr].sort((a, b) => b.count - a.count);
+      let recCols: number[] = [];
+      if (sortedColsBySleep[0].sleep >= 5) {
+        const overdueC = sortedColsBySleep[0].id === 'Col 1' ? 1 : sortedColsBySleep[0].id === 'Col 2' ? 2 : 3;
+        const hitPartnerObj = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1] : sortedColsByHit[0];
+        const partnerC = hitPartnerObj.id === 'Col 1' ? 1 : hitPartnerObj.id === 'Col 2' ? 2 : 3;
+        recCols = [overdueC, partnerC];
+      } else {
+        const c1 = sortedColsByHit[0].id === 'Col 1' ? 1 : sortedColsByHit[0].id === 'Col 2' ? 2 : 3;
+        const c2 = sortedColsByHit[1].id === 'Col 1' ? 1 : sortedColsByHit[1].id === 'Col 2' ? 2 : 3;
+        recCols = [c1, c2];
+      }
+      isColHit = recCols.includes(winningCol);
+    }
+
     if (prediction) {
-        setLastPrediction(prediction);
+      setLastPrediction(prediction);
 
-        // Check closed / betting chart targets for this spin
-        const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
-        const targetUnits = targetBets.get(num) || 0;
-        const isClosedHit = targetUnits > 0;
+      const topIndex = prediction.topNumbers ? prediction.topNumbers.findIndex(tn => tn.num === num) : -1;
+      const isTopHit = topIndex !== -1 && topIndex < 3;
+      const isColorHit = prediction.color !== null && prediction.color === NUMBER_COLORS[num];
+      const isFinalHit = prediction.finalDigits ? prediction.finalDigits.slice(0, strategyConfig.finalDigitsCount || 3).includes(num % 10) : false;
+      const isSeriesHit = prediction.series !== null && prediction.series !== 'none' && prediction.series === getSeriesType(num);
 
-        // Check Dozens and Columns strategy
-        let isDozenHit = false;
-        let isColHit = false;
-        if (num > 0 && spinHistory.length >= 1) {
-          const dc = calculateDozensAndColsStrategy(spinHistory, fiveDepths?.dozensDepth || fiveDepths?.othersDepth || 10);
-          const winningDozen = num <= 12 ? 1 : num <= 24 ? 2 : 3;
-          const winningCol = (num - 1) % 3 + 1;
+      const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
+      const activeSectorsInLast = prediction.sector?.topSectors
+        ? prediction.sector.topSectors.slice(0, topSectorsCount)
+        : prediction.sector?.numbers ? [{ numbers: prediction.sector.numbers }] : [];
+      const isSectorHit = activeSectorsInLast.some(sec => sec.numbers.includes(num));
 
-          const sortedDozensBySleep = [...dc.dozensArr].sort((a, b) => b.sleep - a.sleep);
-          const sortedDozensByHit = [...dc.dozensArr].sort((a, b) => b.count - a.count);
-          let recDozens: number[] = [];
-          if (sortedDozensBySleep[0].sleep >= 5) {
-            const overdueD = sortedDozensBySleep[0].id === '1st Dozen' ? 1 : sortedDozensBySleep[0].id === '2nd Dozen' ? 2 : 3;
-            const hitPartnerObj = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1] : sortedDozensByHit[0];
-            const partnerD = hitPartnerObj.id === '1st Dozen' ? 1 : hitPartnerObj.id === '2nd Dozen' ? 2 : 3;
-            recDozens = [overdueD, partnerD];
-          } else {
-            const d1 = sortedDozensByHit[0].id === '1st Dozen' ? 1 : sortedDozensByHit[0].id === '2nd Dozen' ? 2 : 3;
-            const d2 = sortedDozensByHit[1].id === '1st Dozen' ? 1 : sortedDozensByHit[1].id === '2nd Dozen' ? 2 : 3;
-            recDozens = [d1, d2];
-          }
-          isDozenHit = recDozens.includes(winningDozen);
+      const isPocketHit = (prediction.pocket?.topSteps?.slice(0, strategyConfig.pocketTopRanks || 3).some((s) => s.cwTarget === num || s.acwTarget === num) ?? false) ||
+        (Boolean(strategyConfig.pocketNextChanceEnabled) && (prediction.pocket?.cwTarget === num || prediction.pocket?.acwTarget === num));
 
-          const sortedColsBySleep = [...dc.colsArr].sort((a, b) => b.sleep - a.sleep);
-          const sortedColsByHit = [...dc.colsArr].sort((a, b) => b.count - a.count);
-          let recCols: number[] = [];
-          if (sortedColsBySleep[0].sleep >= 5) {
-            const overdueC = sortedColsBySleep[0].id === 'Col 1' ? 1 : sortedColsBySleep[0].id === 'Col 2' ? 2 : 3;
-            const hitPartnerObj = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1] : sortedColsByHit[0];
-            const partnerC = hitPartnerObj.id === 'Col 1' ? 1 : hitPartnerObj.id === 'Col 2' ? 2 : 3;
-            recCols = [overdueC, partnerC];
-          } else {
-            const c1 = sortedColsByHit[0].id === 'Col 1' ? 1 : sortedColsByHit[0].id === 'Col 2' ? 2 : 3;
-            const c2 = sortedColsByHit[1].id === 'Col 1' ? 1 : sortedColsByHit[1].id === 'Col 2' ? 2 : 3;
-            recCols = [c1, c2];
-          }
-          isColHit = recCols.includes(winningCol);
-        }
-
-        const topIndex = prediction.topNumbers ? prediction.topNumbers.findIndex(tn => tn.num === num) : -1;
-        const isTopHit = topIndex !== -1 && topIndex < 3;
-        const isColorHit = prediction.color !== null && prediction.color === NUMBER_COLORS[num];
-        const isFinalHit = prediction.finalDigits ? prediction.finalDigits.slice(0, strategyConfig.finalDigitsCount || 3).includes(num % 10) : false;
-        const isSeriesHit = prediction.series !== null && prediction.series !== 'none' && prediction.series === getSeriesType(num);
-
-        const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
-        const activeSectorsInLast = prediction.sector?.topSectors
-          ? prediction.sector.topSectors.slice(0, topSectorsCount)
-          : prediction.sector?.numbers ? [{ numbers: prediction.sector.numbers }] : [];
-        const isSectorHit = activeSectorsInLast.some(sec => sec.numbers.includes(num));
-
-        const isPocketHit = (prediction.pocket?.topSteps?.slice(0, strategyConfig.pocketTopRanks || 3).some((s) => s.cwTarget === num || s.acwTarget === num) ?? false) ||
-          (Boolean(strategyConfig.pocketNextChanceEnabled) && (prediction.pocket?.cwTarget === num || prediction.pocket?.acwTarget === num));
-
-        setLastHitStatus({
-            color: isColorHit,
-            final: isFinalHit,
-            series: isSeriesHit,
-            top: isTopHit,
-            sector: isSectorHit,
-            pocket: isPocketHit,
-            closed: isClosedHit,
-            dozen: isDozenHit,
-            col: isColHit,
-            lastSpin: num,
-            hitUnits: targetUnits,
-            topRank: isTopHit ? topIndex + 1 : null,
-        });
+      setLastHitStatus({
+        color: isColorHit,
+        final: isFinalHit,
+        series: isSeriesHit,
+        top: isTopHit,
+        sector: isSectorHit,
+        pocket: isPocketHit,
+        closed: isClosedHit,
+        dozen: isDozenHit,
+        col: isColHit,
+        lastSpin: num,
+        hitUnits: targetUnits,
+        topRank: isTopHit ? topIndex + 1 : null,
+      });
+    } else {
+      setLastHitStatus({
+        color: false,
+        final: false,
+        series: false,
+        top: false,
+        sector: false,
+        pocket: false,
+        closed: isClosedHit,
+        dozen: isDozenHit,
+        col: isColHit,
+        lastSpin: num,
+        hitUnits: targetUnits,
+        topRank: null,
+      });
     }
-    const newHistory = [...spinHistory, num]; setSpinHistory(newHistory); triggerHaptic(prediction?.topNumbers.some(t => t.num === num) ? 'success' : 'medium');
+
+    const newHistory = [...spinHistory, num];
+    setSpinHistory(newHistory);
+    triggerHaptic(prediction?.topNumbers.some(t => t.num === num) || isClosedHit ? 'success' : 'medium');
+
+    // Trigger square reminder when exactly the 5th number is inputted
+    if (newHistory.length === 5 && !hasShownFifthSpinReminder) {
+      setShowFifthSpinModal(true);
+      setHasShownFifthSpinReminder(true);
+    }
+
     if (newHistory.length >= MIN_SPINS_FOR_PATTERNS) {
-        const alertsFromCheck = checkForAlerts(newHistory);
-        if (alertsFromCheck.length > 0) {
-            const fresh = alertsFromCheck.map((alert, index) => ({ ...alert, id: Date.now() + index })).reverse();
-            setAlerts(current => [...fresh, ...current].slice(0, 5));
-        }
+      const alertsFromCheck = checkForAlerts(newHistory);
+      if (alertsFromCheck.length > 0) {
+        const fresh = alertsFromCheck.map((alert, index) => ({ ...alert, id: Date.now() + index })).reverse();
+        setAlerts(current => [...fresh, ...current].slice(0, 5));
+      }
     }
-  }, [spinHistory, checkForAlerts, prediction]);
+  }, [spinHistory, checkForAlerts, prediction, isPro, strategyConfig, sectorSplitMode, fiveDepths, hasShownFifthSpinReminder]);
 
   const handleRemoveLastSpin = useCallback(() => { if (spinHistory.length === 0) return; triggerHaptic('light'); setSpinHistory(prev => prev.slice(0, -1)); setLastHitStatus(null); setLastPrediction(null); }, [spinHistory]);
   const handleRemoveAlert = (id: number) => { triggerHaptic('light'); setAlerts(current => current.filter(alert => alert.id !== id)); };
@@ -464,6 +526,8 @@ const App: React.FC = () => {
     setClosedLookback(8);
     setNeighbourDepth(3);
     setBetStrategyMode('235');
+    setHasShownFifthSpinReminder(false);
+    setShowFifthSpinModal(false);
     safeRemoveStorage(SESSION_STORAGE_KEY); 
     setShowClearConfirmation(false); 
   };
@@ -480,9 +544,30 @@ const App: React.FC = () => {
               <span>{t('title').split(' ')[0]} <span className="text-gold">{t('title').split(' ').slice(1).join(' ')}</span></span>
             </h1>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-gray-300 bg-zinc-800/90 px-2.5 py-0.5 rounded-full border border-gray-700 shadow-sm">
-                {spinHistory.length} {spinHistory.length === 1 ? 'Spin' : 'Spins'}
-              </span>
+              {!isPro ? (
+                <button
+                  type="button"
+                  onClick={() => spinHistory.length >= MAX_FREE_SPINS && setShowActivationModal(true)}
+                  className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shadow-sm flex items-center gap-1.5 transition-all ${
+                    spinHistory.length >= MAX_FREE_SPINS
+                      ? 'bg-amber-500 text-black border-amber-400 font-extrabold animate-pulse cursor-pointer shadow-amber-500/30'
+                      : 'bg-zinc-800/90 text-gray-300 border-gray-700'
+                  }`}
+                  title={spinHistory.length >= MAX_FREE_SPINS ? "50 Spins Limit Reached. Click to activate unlimited full version." : "50 Spins Free Trial"}
+                >
+                  <span>{spinHistory.length}/{MAX_FREE_SPINS} Spins</span>
+                  {spinHistory.length >= MAX_FREE_SPINS && (
+                    <span className="text-[8px] bg-black text-amber-400 px-1.5 py-0.2 rounded font-black uppercase">
+                      LIMIT
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <span className="text-[10px] font-black text-gold bg-gold/10 px-2.5 py-0.5 rounded-full border border-gold/40 shadow-sm flex items-center gap-1">
+                  <span>👑 VIP Unlimited</span>
+                  <span className="text-gray-300">({spinHistory.length} Spins)</span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -563,6 +648,9 @@ const App: React.FC = () => {
         <div className="container mx-auto px-1.5 py-2 max-w-5xl">
             {currentPage === 'main' ? (
             <div className="flex flex-col gap-2 animate-fade-in">
+                {spinHistory.length === 0 && (
+                  <EmptySpinReminderBanner lang={lang} />
+                )}
                 <div className="w-full bg-zinc-900 p-2 rounded-xl shadow-md border border-gray-800/50">
                     <NumberGrid onNumberSelect={handleAddSpin} disabled={false} />
                 </div>
@@ -798,6 +886,19 @@ const App: React.FC = () => {
         message={t('clearMsg')}
         confirmText={t('confirmBtn')}
         cancelText={t('cancelBtn')}
+      />
+      <ActivationLimitModal
+        isOpen={showActivationModal}
+        onClose={() => setShowActivationModal(false)}
+        onGoToSetup={() => switchPage('setup')}
+        lang={lang}
+      />
+      <FifthSpinReminderModal
+        isOpen={showFifthSpinModal}
+        onClose={() => setShowFifthSpinModal(false)}
+        onGoToStrategy={() => switchPage('strategy')}
+        onGoToSetup={() => switchPage('setup')}
+        lang={lang}
       />
     </div>
   );

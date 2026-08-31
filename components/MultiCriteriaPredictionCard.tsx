@@ -150,35 +150,6 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
 }) => {
   const t = labels[lang] || labels['en'];
 
-  if (!isPro) {
-    return (
-      <div className="bg-zinc-950 p-3.5 sm:p-4 rounded-xl border border-amber-500/50 shadow-xl space-y-3 relative overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🔒</span>
-            <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider">
-              {t.title} (VIP Locked)
-            </h3>
-          </div>
-          <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full">
-            请输入有效激活码解锁
-          </span>
-        </div>
-
-        <div className="bg-zinc-900/90 p-3 rounded-xl border border-gray-800 text-center space-y-2">
-          <p className="text-xs font-bold text-amber-300">
-            🔒 请输入有效激活码解锁 5 维智能预测引擎
-          </p>
-          <p className="text-[11px] text-gray-400">
-            Please enter a valid activation code to unlock the 5-criteria prediction engine.
-          </p>
-        </div>
-
-        <VipActivationCard isPro={isPro} onActivated={onActivated} lang={lang} compact={true} />
-      </div>
-    );
-  }
-
   if (!prediction) {
     return (
       <div className="bg-zinc-950 p-2.5 rounded-xl border border-gray-800 text-center space-y-1 shadow-sm">
@@ -233,7 +204,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
 
   return (
     <div className="bg-zinc-950 p-2.5 sm:p-3 rounded-xl border border-gold/40 shadow-lg space-y-2.5 transition-all">
-      {/* LAST SPIN HIT ANNOUNCEMENT BANNER (No number shown, only which prediction hit) */}
+      {/* LAST SPIN HIT ANNOUNCEMENT BANNER (Shows when any prediction or strategy hits) */}
       {isLastSpinValid && hasAnyHit && (
         <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 border-2 border-emerald-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/25 space-y-1.5 transition-all">
           <div className="flex items-center justify-between border-b border-emerald-500/30 pb-1">
@@ -249,7 +220,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
             {isClosedHit && (
               <span className="bg-gold text-black font-black px-2.5 py-0.5 rounded-md shadow-xs flex items-center gap-1">
-                🎯 Target Number Hit (+{(lastHitStatus?.hitUnits || 1) * 36}u)
+                📍 {lang === 'zh' ? '相邻闭合策略命中' : 'Closed Numbers Hit'} {lastHitStatus?.hitUnits ? `(+${(lastHitStatus.hitUnits) * 36}u)` : ''}
               </span>
             )}
             {isTopHit && (
