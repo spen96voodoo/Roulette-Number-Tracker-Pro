@@ -35,9 +35,10 @@ export interface StrategyConfig {
   // 6) Series Strategy
   seriesEnabled: boolean;
 
-  // 7) Pattern
+  // 7) Pattern & Alerts
   patternNextNumEnabled: boolean;
   patternMatchSequenceEnabled: boolean;
+  patternAlertEnabled?: boolean;
 }
 
 export const DEFAULT_STRATEGY_CONFIG: StrategyConfig = {
@@ -67,6 +68,7 @@ export const DEFAULT_STRATEGY_CONFIG: StrategyConfig = {
 
   patternNextNumEnabled: true,
   patternMatchSequenceEnabled: true,
+  patternAlertEnabled: true,
 };
 
 export interface ToastData {
@@ -155,6 +157,7 @@ export interface HitStatus {
   closed?: boolean;
   dozen?: boolean;
   col?: boolean;
+  pattern?: boolean;
   lastSpin?: number;
   hitUnits?: number;
   topRank?: number | null;
@@ -173,5 +176,6 @@ export interface ComplexPrediction {
   }[];
   sector?: SectorPredictionData;
   pocket?: PocketPredictionData;
+  patternNumbers?: number[];
   depthsUsed?: FiveCriteriaDepths;
 }

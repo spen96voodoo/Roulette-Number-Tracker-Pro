@@ -465,6 +465,29 @@ const App: React.FC = () => {
         (Boolean(strategyConfig.pocketNextChanceEnabled) && (prediction.pocket?.cwTarget === num || prediction.pocket?.acwTarget === num))
       );
 
+      const isPatternActive = Boolean(strategyConfig?.patternNextNumEnabled || strategyConfig?.patternMatchSequenceEnabled || strategyConfig?.patternAlertEnabled);
+      let isPatternHit = false;
+      if (isPatternActive && spinHistory.length >= 1) {
+        if (prediction.patternNumbers && prediction.patternNumbers.length > 0) {
+          isPatternHit = prediction.patternNumbers.includes(num);
+        } else {
+          const lastSpinInHist = spinHistory[spinHistory.length - 1];
+          const prevSpinInHist = spinHistory.length >= 2 ? spinHistory[spinHistory.length - 2] : null;
+          const pTargets = new Set<number>();
+          if (strategyConfig?.patternNextNumEnabled !== false) {
+            for (let i = 0; i < spinHistory.length - 1; i++) {
+              if (spinHistory[i] === lastSpinInHist) pTargets.add(spinHistory[i + 1]);
+            }
+          }
+          if (strategyConfig?.patternMatchSequenceEnabled !== false && prevSpinInHist !== null && spinHistory.length >= 3) {
+            for (let i = 0; i < spinHistory.length - 2; i++) {
+              if (spinHistory[i] === prevSpinInHist && spinHistory[i + 1] === lastSpinInHist) pTargets.add(spinHistory[i + 2]);
+            }
+          }
+          isPatternHit = pTargets.has(num);
+        }
+      }
+
       setLastHitStatus({
         color: isColorHit,
         final: isFinalHit,
@@ -475,6 +498,7 @@ const App: React.FC = () => {
         closed: isClosedHit,
         dozen: isDozenHit,
         col: isColHit,
+        pattern: isPatternHit,
         lastSpin: num,
         hitUnits: 0,
         topRank: isTopHit ? topIndex + 1 : null,
@@ -490,6 +514,7 @@ const App: React.FC = () => {
         closed: isClosedHit,
         dozen: isDozenHit,
         col: isColHit,
+        pattern: false,
         lastSpin: num,
         hitUnits: 0,
         topRank: null,

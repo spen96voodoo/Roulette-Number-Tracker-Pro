@@ -181,8 +181,9 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
   const isPocketHit = isLastSpinValid && Boolean(strategyConfig?.pocketEnabled ?? true) && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.slice(0, strategyConfig?.pocketTopRanks || 3).some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
   const isDozenHit = isLastSpinValid && Boolean(strategyConfig?.dozensEnabled ?? true) && Boolean(lastHitStatus?.dozen);
   const isColHit = isLastSpinValid && Boolean(strategyConfig?.colsEnabled ?? true) && Boolean(lastHitStatus?.col);
+  const isPatternHit = isLastSpinValid && Boolean(strategyConfig?.patternNextNumEnabled || strategyConfig?.patternMatchSequenceEnabled || strategyConfig?.patternAlertEnabled) && Boolean(lastHitStatus?.pattern);
 
-  const hasAnyHit = isClosedHit || isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit || isDozenHit || isColHit;
+  const hasAnyHit = isClosedHit || isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit || isDozenHit || isColHit || isPatternHit;
 
   // Rank of lastSpin in last prediction if hit
   const hitTopIndex = lastPrediction?.topNumbers.findIndex(tn => tn.num === lastSpin);
@@ -261,6 +262,11 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
             {isColHit && (
               <span className="bg-blue-950/90 text-blue-300 border border-blue-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
                 📊 {lang === 'zh' ? '三列策略命中' : 'Column Hit'}
+              </span>
+            )}
+            {isPatternHit && (
+              <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+                ⚡ {lang === 'zh' ? '模式规律命中' : lang === 'ja' ? 'パターン的中' : lang === 'ko' ? '패턴 알림 적중' : lang === 'es' ? 'Acierto Patrón' : lang === 'vi' ? 'Trúng Mẫu Chuỗi' : 'Pattern Intelligence Hit'}
               </span>
             )}
           </div>
@@ -355,7 +361,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                   </span>
                   <div className="flex gap-0.5 mt-0.5 flex-wrap justify-end">
                     {matchedCriteria && matchedCriteria.length > 0 ? (
-                      matchedCriteria.slice(0, 4).map((crit, cIdx) => {
+                      matchedCriteria.slice(0, 6).map((crit, cIdx) => {
                         const tagMap: Record<string, string> = {
                           Colour: 'Clr',
                           Final: 'Fin',
@@ -363,6 +369,8 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                           Sector: 'Sec',
                           Pocket: 'Pkt',
                           Pattern: 'Pat',
+                          Dozen: 'Doz',
+                          Column: 'Col',
                         };
                         const shortTag = tagMap[crit] || crit.slice(0, 3);
                         return (
@@ -371,6 +379,8 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
                             className={`text-[7px] font-black px-1 py-0.2 rounded border ${
                               crit === 'Pattern'
                                 ? 'text-amber-300 bg-amber-950/80 border-amber-500/40'
+                                : crit === 'Dozen' || crit === 'Column'
+                                ? 'text-cyan-300 bg-cyan-950/80 border-cyan-500/40'
                                 : 'text-gold bg-zinc-800/90 border-gold/20'
                             }`}
                             title={crit}

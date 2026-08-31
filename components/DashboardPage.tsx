@@ -51,6 +51,8 @@ const dashLabels = {
     topNumsDesc: "Top 3 high-confidence consensus numbers prediction direct hit ratio and unit return.",
     dozensTitle: "8) Dozens & Columns Strategic Signals",
     dozensDesc: "Dozens (1st, 2nd, 3rd) and Columns (1st, 2nd, 3rd) strategic signal hit ratio and unit return.",
+    patternTitle: "9) Pattern Intelligence & Sequence Transitions",
+    patternDesc: "Pattern sequence and follow-up number transitions across entire history hit ratio and unit return.",
     statusAbove: "OVER BASELINE",
     statusBelow: "BELOW BASELINE",
     baseline: "Theoretical Baseline",
@@ -93,6 +95,8 @@ const dashLabels = {
     topNumsDesc: "Top 3 高置信度号码直接命中率与 Return 统计。",
     dozensTitle: "8) 打列策略信号",
     dozensDesc: "几十区与三列横排策略信号命中率与 Return 统计。",
+    patternTitle: "9) 模式规律与序列推移",
+    patternDesc: "基于全场历史相同模式与序列推移预测号码的命中率与 Return 统计。",
     statusAbove: "高于基础期望",
     statusBelow: "低于基础期望",
     baseline: "理论基础期望",
@@ -135,6 +139,8 @@ const dashLabels = {
     topNumsDesc: "Top 3高信頼度番号の直撃的中率とReturn統計。",
     dozensTitle: "8) ダズン・カラム戦略シグナル",
     dozensDesc: "ダズンおよびカラムシグナルの的中率とReturn統計。",
+    patternTitle: "9) パターンインテリジェンス＆履歴推移",
+    patternDesc: "全スピン履歴におけるパターン後続数字の的中率とReturn統計。",
     statusAbove: "基本確率超え",
     statusBelow: "基本確率未満",
     baseline: "理論基本確率",
@@ -177,6 +183,8 @@ const dashLabels = {
     topNumsDesc: "Tasa de impacto directo y retorno para los 3 números con mayor confianza.",
     dozensTitle: "8) Señales Estratégicas de Docenas y Columnas",
     dozensDesc: "Tasa de acierto y retorno para señales de docenas y columnas.",
+    patternTitle: "9) Inteligencia de Patrones y Secuencias",
+    patternDesc: "Tasa de acierto y retorno para transiciones de secuencias de patrones en todo el historial.",
     statusAbove: "SOBRE BASE TEÓRICA",
     statusBelow: "BAJO BASE TEÓRICA",
     baseline: "Base Teórica",
@@ -219,6 +227,8 @@ const dashLabels = {
     topNumsDesc: "상위 3개 핵심 추천 번호 직격 적중률 및 Return.",
     dozensTitle: "8) 더즌 및 컬럼 전략 시그널",
     dozensDesc: "더즌 및 컬럼 신호 적중률 및 Return.",
+    patternTitle: "9) 패턴 인텔리전스 및 시퀀스 전이",
+    patternDesc: "전체 스핀 기록을 기반으로 한 동일 패턴 후속 번호 적중률 및 Return 분석.",
     statusAbove: "이론치 상회",
     statusBelow: "이론치 하회",
     baseline: "이론 기본치",
@@ -261,6 +271,8 @@ const dashLabels = {
     topNumsDesc: "Tỷ lệ trúng trực tiếp và Return của 3 số đề xuất hàng đầu.",
     dozensTitle: "8) Tín Hiệu Chiến Lược Hàng & Cột",
     dozensDesc: "Tỷ lệ trúng và Return tín hiệu chiến lược Hàng (Dozens) và Cột (Columns).",
+    patternTitle: "9) Trí Tuệ Mẫu Chuỗi & Chuyển Tiếp",
+    patternDesc: "Tỷ lệ trúng và Return của các số xuất hiện sau mẫu chuỗi trên toàn bộ lịch sử.",
     statusAbove: "VƯỢT LÝ THUYẾT",
     statusBelow: "DƯỚI LÝ THUYẾT",
     baseline: "Cơ Bản Lý Thuyết",
@@ -330,6 +342,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     let pocketOffered = 0, pocketWins = 0, pocketUnitsIn = 0, pocketUnitsOut = 0;
     let topOffered = 0, topWins = 0, topUnitsIn = 0, topUnitsOut = 0;
     let dozensOffered = 0, dozensWins = 0, dozensUnitsIn = 0, dozensUnitsOut = 0;
+    let patternOffered = 0, patternWins = 0, patternUnitsIn = 0, patternUnitsOut = 0;
 
     const activeSectorMode = strategyConfig.vectorSectorAmount || sectorSplitMode;
     const topSectorsCount = strategyConfig.vectorTopSectorsCount || 1;
@@ -549,6 +562,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           if (dozenHit) dozensUnitsOut += 30; // 10u input on winning dozen pays 30u total
           if (colHit) dozensUnitsOut += 30;   // 10u input on winning column pays 30u total
         }
+
+        // 9) Pattern Intelligence & Sequence Transitions (Whole history)
+        const isPatternActive = strategyConfig.patternNextNumEnabled !== false || strategyConfig.patternMatchSequenceEnabled !== false || strategyConfig.patternAlertEnabled !== false;
+        if (isPatternActive && hist.length >= 2) {
+          const lastNumInHist = hist[hist.length - 1];
+          const prevNumInHist = hist.length >= 2 ? hist[hist.length - 2] : null;
+          const pTargets = new Set<number>();
+
+          if (strategyConfig.patternNextNumEnabled !== false) {
+            for (let k = 0; k < hist.length - 1; k++) {
+              if (hist[k] === lastNumInHist) pTargets.add(hist[k + 1]);
+            }
+          }
+          if (strategyConfig.patternMatchSequenceEnabled !== false && prevNumInHist !== null && hist.length >= 3) {
+            for (let k = 0; k < hist.length - 2; k++) {
+              if (hist[k] === prevNumInHist && hist[k + 1] === lastNumInHist) pTargets.add(hist[k + 2]);
+            }
+          }
+
+          if (pTargets.size > 0) {
+            patternOffered++;
+            patternUnitsIn += pTargets.size;
+            if (pTargets.has(winner)) {
+              patternWins++;
+              patternUnitsOut += 36;
+            }
+          }
+        }
       }
     }
 
@@ -576,13 +617,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const dozensRate = calcHit(dozensWins, dozensOffered);
     const dozensBaseline = 64.9;
 
-    const totalUnitsInAll = closedUnitsIn + colorUnitsIn + seriesUnitsIn + sectorUnitsIn + finalUnitsIn + pocketUnitsIn + topUnitsIn + dozensUnitsIn;
-    const totalUnitsOutAll = closedUnitsOut + colorUnitsOut + seriesUnitsOut + sectorUnitsOut + finalUnitsOut + pocketUnitsOut + topUnitsOut + dozensUnitsOut;
+    const patternRate = calcHit(patternWins, patternOffered);
+    const avgPatternTargets = patternOffered > 0 ? (patternUnitsIn / patternOffered) : 3;
+    const patternBaseline = Math.round(((avgPatternTargets) / 37) * 1000) / 10;
+
+    const totalUnitsInAll = closedUnitsIn + colorUnitsIn + seriesUnitsIn + sectorUnitsIn + finalUnitsIn + pocketUnitsIn + topUnitsIn + dozensUnitsIn + patternUnitsIn;
+    const totalUnitsOutAll = closedUnitsOut + colorUnitsOut + seriesUnitsOut + sectorUnitsOut + finalUnitsOut + pocketUnitsOut + topUnitsOut + dozensUnitsOut + patternUnitsOut;
     const netReturnAll = totalUnitsOutAll - totalUnitsInAll;
     const combinedROI = totalUnitsInAll > 0 ? Math.round(((netReturnAll / totalUnitsInAll) * 100) * 10) / 10 : 0;
 
-    const totalOfferedAll = closedPredicted + colorOffered + seriesOffered + sectorOffered + finalOffered + pocketOffered + topOffered + dozensOffered;
-    const totalWinsAll = closedHits + colorWins + seriesWins + sectorWins + finalWins + pocketWins + topWins + dozensWins;
+    const totalOfferedAll = closedPredicted + colorOffered + seriesOffered + sectorOffered + finalOffered + pocketOffered + topOffered + dozensOffered + patternOffered;
+    const totalWinsAll = closedHits + colorWins + seriesWins + sectorWins + finalWins + pocketWins + topWins + dozensWins + patternWins;
     const combinedAccuracy = totalOfferedAll > 0 ? Math.round((totalWinsAll / totalOfferedAll) * 1000) / 10 : 0;
 
     return {
@@ -674,6 +719,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         rate: dozensRate,
         baseline: dozensBaseline,
         isAbove: dozensRate >= dozensBaseline,
+      },
+      pattern: {
+        offered: patternOffered,
+        wins: patternWins,
+        unitsIn: patternUnitsIn,
+        unitsOut: patternUnitsOut,
+        net: patternUnitsOut - patternUnitsIn,
+        rate: patternRate,
+        baseline: patternBaseline,
+        isAbove: patternRate >= patternBaseline,
       },
     };
   }, [spinHistory, fiveDepths, sectorSplitMode, strategyConfig, neighbourDepth, closedLookback, betStrategyMode]);
@@ -1059,6 +1114,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           unitsIn={backtestStats.dozens.unitsIn}
           unitsOut={backtestStats.dozens.unitsOut}
           netUnits={backtestStats.dozens.net}
+        />
+
+        {/* 9) Pattern Intelligence & Sequence Transitions */}
+        <StatCriterionCard
+          icon="🔮"
+          title={t.patternTitle}
+          description={t.patternDesc}
+          offered={backtestStats.pattern.offered}
+          wins={backtestStats.pattern.wins}
+          rate={backtestStats.pattern.rate}
+          baseline={backtestStats.pattern.baseline}
+          isAbove={backtestStats.pattern.isAbove}
+          statusAbove={t.statusAbove}
+          statusBelow={t.statusBelow}
+          unitsIn={backtestStats.pattern.unitsIn}
+          unitsOut={backtestStats.pattern.unitsOut}
+          netUnits={backtestStats.pattern.net}
         />
       </div>
     </div>

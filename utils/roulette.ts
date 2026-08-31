@@ -457,19 +457,20 @@ export const getMultiCriteriaPrediction = (
     const prevSpin = history.length >= 2 ? history[history.length - 2] : null;
     const prevPrevSpin = history.length >= 3 ? history[history.length - 3] : null;
 
-    // Pre-calculate pattern follow-up frequencies within topNumbersDepth window
-    const effectiveTopDepth = Math.max(topNumbersDepth || 10, 4);
-    const patternHistory = history.slice(-effectiveTopDepth);
+    // Pre-calculate pattern follow-up frequencies across the entire history
+    const patternHistory = history;
     const seq3Follows: Map<number, number> = new Map();
     const seq2Follows: Map<number, number> = new Map();
     const seq1Follows: Map<number, number> = new Map();
     const gappedFollows: Map<number, number> = new Map();
+    const patternTargetSet = new Set<number>();
 
     if (patternHistory.length >= 4 && prevPrevSpin !== null && prevSpin !== null) {
         for (let i = 0; i < patternHistory.length - 3; i++) {
             if (patternHistory[i] === prevPrevSpin && patternHistory[i+1] === prevSpin && patternHistory[i+2] === lastSpin) {
                 const nextNum = patternHistory[i+3];
                 seq3Follows.set(nextNum, (seq3Follows.get(nextNum) || 0) + 1);
+                patternTargetSet.add(nextNum);
             }
         }
     }
@@ -479,11 +480,13 @@ export const getMultiCriteriaPrediction = (
             if (patternHistory[i] === prevSpin && patternHistory[i+1] === lastSpin) {
                 const nextNum = patternHistory[i+2];
                 seq2Follows.set(nextNum, (seq2Follows.get(nextNum) || 0) + 1);
+                patternTargetSet.add(nextNum);
             }
             if (patternHistory[i] === prevSpin && patternHistory[i+2] === lastSpin) {
                 const nextNum = patternHistory[i+3];
                 if (nextNum !== undefined) {
                     gappedFollows.set(nextNum, (gappedFollows.get(nextNum) || 0) + 1);
+                    patternTargetSet.add(nextNum);
                 }
             }
         }
@@ -494,6 +497,7 @@ export const getMultiCriteriaPrediction = (
             if (patternHistory[i] === lastSpin) {
                 const nextNum = patternHistory[i+1];
                 seq1Follows.set(nextNum, (seq1Follows.get(nextNum) || 0) + 1);
+                patternTargetSet.add(nextNum);
             }
         }
     }
@@ -553,7 +557,7 @@ export const getMultiCriteriaPrediction = (
             matched.push("Column");
         }
 
-        // G. Pattern Alert & Sequence Intelligence Criteria (topNumbersDepth)
+        // G. Pattern Alert & Sequence Intelligence Criteria (Full History)
         let patternScore = 0;
         if (seq3Follows.has(n)) {
             patternScore += (seq3Follows.get(n) || 0) * 60;
@@ -575,7 +579,9 @@ export const getMultiCriteriaPrediction = (
 
         // Multi-criteria synergy multipliers for high confluence
         const uniqueCriteriaCount = matched.length;
-        if (uniqueCriteriaCount >= 6) {
+        if (uniqueCriteriaCount >= 7) {
+            score *= 2.8;
+        } else if (uniqueCriteriaCount >= 6) {
             score *= 2.5;
         } else if (uniqueCriteriaCount >= 5) {
             score *= 2.2;
@@ -631,6 +637,7 @@ export const getMultiCriteriaPrediction = (
             confidence: 85,
             depthUsed: pocketsDepth,
         },
+        patternNumbers: Array.from(patternTargetSet),
         depthsUsed: depths,
     };
 };
@@ -692,7 +699,7 @@ export const calculateStrategyBreakdowns = (
   const effectiveSectorSplit = config.vectorSectorAmount || sectorSplitMode;
   const pred = getMultiCriteriaPrediction(history, defaultDepths, effectiveSectorSplit, config);
 
-  // PART 1: CLOSED NUMBERS
+  // PART 1: CLOSED NUMBERS (Progression-based units)
   if (config.closedEnabled && history.length > 0) {
     const recentHistory = history.slice(-config.closedLookback);
     const uniqueHistoryByRecency = [...new Set([...recentHistory].reverse())];
@@ -717,7 +724,7 @@ export const calculateStrategyBreakdowns = (
     }
   }
 
-  // PART 2: WHEEL VECTOR
+  // PART 2: WHEEL VECTOR (1 unit per predicted number)
   if (config.vectorEnabled && history.length >= 2 && pred?.sector) {
     const topCount = config.vectorTopSectorsCount || 1;
     let targetSectors: { id: string | number; name: string; numbers: number[] }[] = [];
@@ -742,7 +749,7 @@ export const calculateStrategyBreakdowns = (
     });
   }
 
-  // PART 3: POCKET DISTANCE
+  // PART 3: POCKET DISTANCE (1 unit per predicted target)
   if (config.pocketEnabled && history.length >= 2 && pred?.pocket?.topSteps) {
     const pocketTargetsAdded = new Set<number>();
     const topRanks = config.pocketTopRanks || 3;
@@ -759,11 +766,11 @@ export const calculateStrategyBreakdowns = (
     }
 
     pocketTargetsAdded.forEach(tNum => {
-      addPartUnits(tNum, 'Pocket Distance', 2, '🧭');
+      addPartUnits(tNum, 'Pocket Distance', 1, '🧭');
     });
   }
 
-  // PART 4: FINAL MATRIX
+  // PART 4: FINAL MATRIX (1 unit per predicted final ending digit)
   if (config.finalEnabled && history.length >= 2 && pred?.finalDigits) {
     const count = config.finalDigitsCount || 3;
     const chosenFinals = pred.finalDigits.slice(0, count);
@@ -775,35 +782,42 @@ export const calculateStrategyBreakdowns = (
     });
   }
 
-  // PART 5: DOZENS, COLS, COLOUR & SERIES SIGNALS ARE RENDERED AS DOWNSIDE INDICATORS (NOT IN INDIVIDUAL NUMBERS)
+  // PART 5: PATTERN ALERT & INTELLIGENCE (1 unit per predicted pattern number across full history)
+  const isPatternActive = config.patternNextNumEnabled !== false || config.patternMatchSequenceEnabled !== false || config.patternAlertEnabled !== false;
 
-  // PART 6: PATTERN INTELLIGENCE
-  if (config.patternNextNumEnabled && history.length >= 2) {
-    const nextNums = new Map<number, number>();
-    for (let i = 0; i < history.length - 1; i++) {
-      if (history[i] === lastSpin) {
-        const nextN = history[i + 1];
-        nextNums.set(nextN, (nextNums.get(nextN) || 0) + 1);
+  if (isPatternActive && history.length >= 2) {
+    const lastNum = history[history.length - 1];
+    const prevNum = history.length >= 2 ? history[history.length - 2] : null;
+    const patternTargets = new Set<number>();
+
+    // 1-step pattern transitions (all numbers that followed lastNum across entire history)
+    if (config.patternNextNumEnabled !== false) {
+      for (let i = 0; i < history.length - 1; i++) {
+        if (history[i] === lastNum) {
+          patternTargets.add(history[i + 1]);
+        }
       }
     }
-    nextNums.forEach((count, num) => {
-      if (count >= 1) {
-        addPartUnits(num, 'Pattern Intelligence', 1, '⚡');
+
+    // 2-step sequence pattern match (all numbers that followed [prevNum, lastNum] across entire history)
+    if (config.patternMatchSequenceEnabled !== false && prevNum !== null && history.length >= 3) {
+      for (let i = 0; i < history.length - 2; i++) {
+        if (history[i] === prevNum && history[i + 1] === lastNum) {
+          patternTargets.add(history[i + 2]);
+        }
       }
+    }
+
+    patternTargets.forEach(num => {
+      addPartUnits(num, 'Pattern Intelligence', 1, '⚡');
     });
   }
 
-  if (config.patternMatchSequenceEnabled && history.length >= 3) {
-    const last2 = history.slice(-2);
-    const seqNextNums = new Map<number, number>();
-    for (let i = 0; i < history.length - 2; i++) {
-      if (history[i] === last2[0] && history[i + 1] === last2[1]) {
-        const nextN = history[i + 2];
-        seqNextNums.set(nextN, (seqNextNums.get(nextN) || 0) + 1);
-      }
-    }
-    seqNextNums.forEach((count, num) => {
-      addPartUnits(num, 'Pattern Intelligence', 1, '⚡');
+  // PART 6: TOP 3 RECOMMENDED NUMBERS (+2 units)
+  if (pred?.topNumbers && pred.topNumbers.length > 0) {
+    const top3List = pred.topNumbers.slice(0, 3);
+    top3List.forEach(item => {
+      addPartUnits(item.num, 'Top 3 Recommendation', 2, '⭐');
     });
   }
 
