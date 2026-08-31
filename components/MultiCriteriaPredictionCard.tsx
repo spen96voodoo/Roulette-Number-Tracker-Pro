@@ -220,7 +220,7 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
           <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black">
             {isClosedHit && (
               <span className="bg-gold text-black font-black px-2.5 py-0.5 rounded-md shadow-xs flex items-center gap-1">
-                📍 {lang === 'zh' ? '相邻闭合策略命中' : 'Closed Numbers Hit'} {lastHitStatus?.hitUnits ? `(+${(lastHitStatus.hitUnits) * 36}u)` : ''}
+                📍 {lang === 'zh' ? '相邻闭合策略命中' : 'Closed Numbers Hit'}
               </span>
             )}
             {isTopHit && (
@@ -255,12 +255,12 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
             )}
             {isDozenHit && (
               <span className="bg-amber-950/90 text-amber-300 border border-amber-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-                📊 Dozen Hit (+30u)
+                📊 {lang === 'zh' ? '几十区策略命中' : 'Dozen Hit'}
               </span>
             )}
             {isColHit && (
               <span className="bg-blue-950/90 text-blue-300 border border-blue-500/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-                📊 Column Hit (+30u)
+                📊 {lang === 'zh' ? '三列策略命中' : 'Column Hit'}
               </span>
             )}
           </div>

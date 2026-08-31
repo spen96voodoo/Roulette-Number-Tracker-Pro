@@ -379,10 +379,9 @@ const App: React.FC = () => {
       return;
     }
 
-    // Check closed / betting chart targets for this spin ONLY if closedEnabled is ON
+    // Check closed numbers strategy ONLY if closedEnabled is ON
     let isClosedHit = false;
-    let targetUnits = 0;
-    if (strategyConfig?.closedEnabled && spinHistory.length > 0) {
+    if (Boolean(strategyConfig?.closedEnabled) && spinHistory.length > 0) {
       const recentHistory = spinHistory.slice(-strategyConfig.closedLookback);
       const uniqueHistoryByRecency = [...new Set([...recentHistory].reverse())];
       const candidatePool: number[] = [];
@@ -392,11 +391,7 @@ const App: React.FC = () => {
         }
       });
       const closedCandidates = [...new Set(candidatePool)].filter(n => n !== -1);
-      const isCandidateHit = closedCandidates.includes(num);
-
-      const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
-      targetUnits = targetBets.get(num) || (isCandidateHit ? (strategyConfig.closedProgression === '235' ? 2 : 1) : 0);
-      isClosedHit = isCandidateHit || (targetBets.get(num) !== undefined && targetBets.get(num)! > 0);
+      isClosedHit = closedCandidates.includes(num);
     }
 
     // Check Dozens and Columns strategy ONLY if their respective toggles are ON
@@ -481,7 +476,7 @@ const App: React.FC = () => {
         dozen: isDozenHit,
         col: isColHit,
         lastSpin: num,
-        hitUnits: targetUnits,
+        hitUnits: 0,
         topRank: isTopHit ? topIndex + 1 : null,
       });
     } else {
@@ -496,7 +491,7 @@ const App: React.FC = () => {
         dozen: isDozenHit,
         col: isColHit,
         lastSpin: num,
-        hitUnits: targetUnits,
+        hitUnits: 0,
         topRank: null,
       });
     }
