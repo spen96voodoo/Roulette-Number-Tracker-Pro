@@ -379,10 +379,10 @@ const App: React.FC = () => {
       return;
     }
 
-    // Check closed / betting chart targets for this spin
+    // Check closed / betting chart targets for this spin ONLY if closedEnabled is ON
     let isClosedHit = false;
     let targetUnits = 0;
-    if (strategyConfig.closedEnabled && spinHistory.length > 0) {
+    if (strategyConfig?.closedEnabled && spinHistory.length > 0) {
       const recentHistory = spinHistory.slice(-strategyConfig.closedLookback);
       const uniqueHistoryByRecency = [...new Set([...recentHistory].reverse())];
       const candidatePool: number[] = [];
@@ -397,49 +397,52 @@ const App: React.FC = () => {
       const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
       targetUnits = targetBets.get(num) || (isCandidateHit ? (strategyConfig.closedProgression === '235' ? 2 : 1) : 0);
       isClosedHit = isCandidateHit || (targetBets.get(num) !== undefined && targetBets.get(num)! > 0);
-    } else if (spinHistory.length > 0) {
-      const targetBets = calculateBets(spinHistory, strategyConfig, sectorSplitMode);
-      targetUnits = targetBets.get(num) || 0;
-      isClosedHit = targetUnits > 0;
     }
 
-    // Check Dozens and Columns strategy
+    // Check Dozens and Columns strategy ONLY if their respective toggles are ON
     let isDozenHit = false;
     let isColHit = false;
-    if (num > 0 && spinHistory.length >= 1) {
+    const isDozensEnabled = strategyConfig?.dozensEnabled ?? true;
+    const isColsEnabled = strategyConfig?.colsEnabled ?? true;
+
+    if (num > 0 && spinHistory.length >= 1 && (isDozensEnabled || isColsEnabled)) {
       const dc = calculateDozensAndColsStrategy(spinHistory, fiveDepths?.dozensDepth || fiveDepths?.othersDepth || 10);
       const winningDozen = num <= 12 ? 1 : num <= 24 ? 2 : 3;
       const winningCol = (num - 1) % 3 + 1;
 
-      const sortedDozensBySleep = [...dc.dozensArr].sort((a, b) => b.sleep - a.sleep);
-      const sortedDozensByHit = [...dc.dozensArr].sort((a, b) => b.count - a.count);
-      let recDozens: number[] = [];
-      if (sortedDozensBySleep[0].sleep >= 5) {
-        const overdueD = sortedDozensBySleep[0].id === '1st Dozen' ? 1 : sortedDozensBySleep[0].id === '2nd Dozen' ? 2 : 3;
-        const hitPartnerObj = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1] : sortedDozensByHit[0];
-        const partnerD = hitPartnerObj.id === '1st Dozen' ? 1 : hitPartnerObj.id === '2nd Dozen' ? 2 : 3;
-        recDozens = [overdueD, partnerD];
-      } else {
-        const d1 = sortedDozensByHit[0].id === '1st Dozen' ? 1 : sortedDozensByHit[0].id === '2nd Dozen' ? 2 : 3;
-        const d2 = sortedDozensByHit[1].id === '1st Dozen' ? 1 : sortedDozensByHit[1].id === '2nd Dozen' ? 2 : 3;
-        recDozens = [d1, d2];
+      if (isDozensEnabled) {
+        const sortedDozensBySleep = [...dc.dozensArr].sort((a, b) => b.sleep - a.sleep);
+        const sortedDozensByHit = [...dc.dozensArr].sort((a, b) => b.count - a.count);
+        let recDozens: number[] = [];
+        if (sortedDozensBySleep[0].sleep >= 5) {
+          const overdueD = sortedDozensBySleep[0].id === '1st Dozen' ? 1 : sortedDozensBySleep[0].id === '2nd Dozen' ? 2 : 3;
+          const hitPartnerObj = sortedDozensByHit[0].id === sortedDozensBySleep[0].id ? sortedDozensByHit[1] : sortedDozensByHit[0];
+          const partnerD = hitPartnerObj.id === '1st Dozen' ? 1 : hitPartnerObj.id === '2nd Dozen' ? 2 : 3;
+          recDozens = [overdueD, partnerD];
+        } else {
+          const d1 = sortedDozensByHit[0].id === '1st Dozen' ? 1 : sortedDozensByHit[0].id === '2nd Dozen' ? 2 : 3;
+          const d2 = sortedDozensByHit[1].id === '1st Dozen' ? 1 : sortedDozensByHit[1].id === '2nd Dozen' ? 2 : 3;
+          recDozens = [d1, d2];
+        }
+        isDozenHit = recDozens.includes(winningDozen);
       }
-      isDozenHit = recDozens.includes(winningDozen);
 
-      const sortedColsBySleep = [...dc.colsArr].sort((a, b) => b.sleep - a.sleep);
-      const sortedColsByHit = [...dc.colsArr].sort((a, b) => b.count - a.count);
-      let recCols: number[] = [];
-      if (sortedColsBySleep[0].sleep >= 5) {
-        const overdueC = sortedColsBySleep[0].id === 'Col 1' ? 1 : sortedColsBySleep[0].id === 'Col 2' ? 2 : 3;
-        const hitPartnerObj = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1] : sortedColsByHit[0];
-        const partnerC = hitPartnerObj.id === 'Col 1' ? 1 : hitPartnerObj.id === 'Col 2' ? 2 : 3;
-        recCols = [overdueC, partnerC];
-      } else {
-        const c1 = sortedColsByHit[0].id === 'Col 1' ? 1 : sortedColsByHit[0].id === 'Col 2' ? 2 : 3;
-        const c2 = sortedColsByHit[1].id === 'Col 1' ? 1 : sortedColsByHit[1].id === 'Col 2' ? 2 : 3;
-        recCols = [c1, c2];
+      if (isColsEnabled) {
+        const sortedColsBySleep = [...dc.colsArr].sort((a, b) => b.sleep - a.sleep);
+        const sortedColsByHit = [...dc.colsArr].sort((a, b) => b.count - a.count);
+        let recCols: number[] = [];
+        if (sortedColsBySleep[0].sleep >= 5) {
+          const overdueC = sortedColsBySleep[0].id === 'Col 1' ? 1 : sortedColsBySleep[0].id === 'Col 2' ? 2 : 3;
+          const hitPartnerObj = sortedColsByHit[0].id === sortedColsBySleep[0].id ? sortedColsByHit[1] : sortedColsByHit[0];
+          const partnerC = hitPartnerObj.id === 'Col 1' ? 1 : hitPartnerObj.id === 'Col 2' ? 2 : 3;
+          recCols = [overdueC, partnerC];
+        } else {
+          const c1 = sortedColsByHit[0].id === 'Col 1' ? 1 : sortedColsByHit[0].id === 'Col 2' ? 2 : 3;
+          const c2 = sortedColsByHit[1].id === 'Col 1' ? 1 : sortedColsByHit[1].id === 'Col 2' ? 2 : 3;
+          recCols = [c1, c2];
+        }
+        isColHit = recCols.includes(winningCol);
       }
-      isColHit = recCols.includes(winningCol);
     }
 
     if (prediction) {
@@ -447,18 +450,25 @@ const App: React.FC = () => {
 
       const topIndex = prediction.topNumbers ? prediction.topNumbers.findIndex(tn => tn.num === num) : -1;
       const isTopHit = topIndex !== -1 && topIndex < 3;
-      const isColorHit = prediction.color !== null && prediction.color === NUMBER_COLORS[num];
-      const isFinalHit = prediction.finalDigits ? prediction.finalDigits.slice(0, strategyConfig.finalDigitsCount || 3).includes(num % 10) : false;
-      const isSeriesHit = prediction.series !== null && prediction.series !== 'none' && prediction.series === getSeriesType(num);
+      
+      const isColorHit = Boolean(strategyConfig?.colorEnabled ?? true) && prediction.color !== null && prediction.color === NUMBER_COLORS[num];
+      
+      const isFinalHit = Boolean(strategyConfig?.finalEnabled ?? true) && Boolean(
+        prediction.finalDigits && prediction.finalDigits.slice(0, strategyConfig.finalDigitsCount || 3).includes(num % 10)
+      );
+      
+      const isSeriesHit = Boolean(strategyConfig?.seriesEnabled ?? true) && prediction.series !== null && prediction.series !== 'none' && prediction.series === getSeriesType(num);
 
       const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
       const activeSectorsInLast = prediction.sector?.topSectors
         ? prediction.sector.topSectors.slice(0, topSectorsCount)
         : prediction.sector?.numbers ? [{ numbers: prediction.sector.numbers }] : [];
-      const isSectorHit = activeSectorsInLast.some(sec => sec.numbers.includes(num));
+      const isSectorHit = Boolean(strategyConfig?.vectorEnabled ?? true) && activeSectorsInLast.some(sec => sec.numbers.includes(num));
 
-      const isPocketHit = (prediction.pocket?.topSteps?.slice(0, strategyConfig.pocketTopRanks || 3).some((s) => s.cwTarget === num || s.acwTarget === num) ?? false) ||
-        (Boolean(strategyConfig.pocketNextChanceEnabled) && (prediction.pocket?.cwTarget === num || prediction.pocket?.acwTarget === num));
+      const isPocketHit = Boolean(strategyConfig?.pocketEnabled ?? true) && (
+        (prediction.pocket?.topSteps?.slice(0, strategyConfig.pocketTopRanks || 3).some((s) => s.cwTarget === num || s.acwTarget === num) ?? false) ||
+        (Boolean(strategyConfig.pocketNextChanceEnabled) && (prediction.pocket?.cwTarget === num || prediction.pocket?.acwTarget === num))
+      );
 
       setLastHitStatus({
         color: isColorHit,

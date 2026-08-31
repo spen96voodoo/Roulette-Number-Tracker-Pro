@@ -167,20 +167,20 @@ export const MultiCriteriaPredictionCard: React.FC<MultiCriteriaPredictionCardPr
 
   const isLastSpinValid = lastSpin !== undefined && lastSpin !== null;
 
-  // Evaluate hit status ONLY for the LAST spin against the LAST prediction
-  const isClosedHit = isLastSpinValid && Boolean(lastHitStatus?.closed);
+  // Evaluate hit status ONLY for the LAST spin against the LAST prediction AND only if that strategy is ON
+  const isClosedHit = isLastSpinValid && Boolean(strategyConfig?.closedEnabled) && Boolean(lastHitStatus?.closed);
   const isTopHit = isLastSpinValid && (lastHitStatus?.top ?? (lastPrediction?.topNumbers.some(tn => tn.num === lastSpin) ?? false));
-  const isColorHit = isLastSpinValid && (lastHitStatus?.color ?? (lastPrediction?.color !== null && lastPrediction?.color === NUMBER_COLORS[lastSpin]));
-  const isFinalHit = isLastSpinValid && (lastHitStatus?.final ?? (Boolean(lastPrediction?.finalDigits && lastPrediction.finalDigits.length > 0 && lastPrediction.finalDigits.slice(0, strategyConfig?.finalDigitsCount || 3).includes(lastSpin % 10))));
-  const isSeriesHit = isLastSpinValid && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series !== 'none' && lastPrediction?.series === getSeriesType(lastSpin)));
+  const isColorHit = isLastSpinValid && Boolean(strategyConfig?.colorEnabled ?? true) && (lastHitStatus?.color ?? (lastPrediction?.color !== null && lastPrediction?.color === NUMBER_COLORS[lastSpin]));
+  const isFinalHit = isLastSpinValid && Boolean(strategyConfig?.finalEnabled ?? true) && (lastHitStatus?.final ?? (Boolean(lastPrediction?.finalDigits && lastPrediction.finalDigits.length > 0 && lastPrediction.finalDigits.slice(0, strategyConfig?.finalDigitsCount || 3).includes(lastSpin % 10))));
+  const isSeriesHit = isLastSpinValid && Boolean(strategyConfig?.seriesEnabled ?? true) && (lastHitStatus?.series ?? (lastPrediction?.series !== null && lastPrediction?.series !== 'none' && lastPrediction?.series === getSeriesType(lastSpin)));
   const topSectorsCount = strategyConfig?.vectorTopSectorsCount || 1;
   const activeSectorsInLast = lastPrediction?.sector?.topSectors
     ? lastPrediction.sector.topSectors.slice(0, topSectorsCount)
     : lastPrediction?.sector?.numbers ? [{ numbers: lastPrediction.sector.numbers }] : [];
-  const isSectorHit = isLastSpinValid && (lastHitStatus?.sector ?? activeSectorsInLast.some(sec => sec.numbers.includes(lastSpin)));
-  const isPocketHit = isLastSpinValid && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.slice(0, strategyConfig?.pocketTopRanks || 3).some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
-  const isDozenHit = isLastSpinValid && Boolean(lastHitStatus?.dozen);
-  const isColHit = isLastSpinValid && Boolean(lastHitStatus?.col);
+  const isSectorHit = isLastSpinValid && Boolean(strategyConfig?.vectorEnabled ?? true) && (lastHitStatus?.sector ?? activeSectorsInLast.some(sec => sec.numbers.includes(lastSpin)));
+  const isPocketHit = isLastSpinValid && Boolean(strategyConfig?.pocketEnabled ?? true) && (lastHitStatus?.pocket ?? (lastPrediction?.pocket?.topSteps?.slice(0, strategyConfig?.pocketTopRanks || 3).some((s) => s.cwTarget === lastSpin || s.acwTarget === lastSpin) ?? false));
+  const isDozenHit = isLastSpinValid && Boolean(strategyConfig?.dozensEnabled ?? true) && Boolean(lastHitStatus?.dozen);
+  const isColHit = isLastSpinValid && Boolean(strategyConfig?.colsEnabled ?? true) && Boolean(lastHitStatus?.col);
 
   const hasAnyHit = isClosedHit || isTopHit || isColorHit || isFinalHit || isSeriesHit || isSectorHit || isPocketHit || isDozenHit || isColHit;
 
