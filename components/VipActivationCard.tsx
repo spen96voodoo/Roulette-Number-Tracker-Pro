@@ -13,7 +13,7 @@ const translations = {
   en: {
     title: "ACTIVE ALL VIP FUNCTIONS",
     subtitle: "Unlock Wheel Vector, Pocket Distance, Sector Heat, Final Matrix & 5-Criteria Prediction Engine",
-    placeholder: "Enter VIP Activation Code (e.g. ROULETTE-PRO-D36JT18)...",
+    placeholder: "INPUT ACTIVE CODE HERE",
     btnActive: "ACTIVE NOW",
     btnActivating: "Verifying...",
     activeBadge: "VIP UNLOCKED",
@@ -26,7 +26,7 @@ const translations = {
   zh: {
     title: "激活所有 VIP 高级功能 (ACTIVE ALL VIP FUNCTIONS)",
     subtitle: "解锁轮盘间距、口袋距离、分区走势、尾数矩阵与5大标准预测引擎",
-    placeholder: "请输入 VIP 激活码（例：ROULETTE-PRO-D36JT18）...",
+    placeholder: "INPUT ACTIVE CODE HERE",
     btnActive: "立即激活",
     btnActivating: "正在本地规则验证...",
     activeBadge: "VIP 已激活",
@@ -39,7 +39,7 @@ const translations = {
   ja: {
     title: "VIP機能をすべて有効化 (ACTIVE ALL VIP FUNCTIONS)",
     subtitle: "ホイールベクトル、ポケット距離、セクターヒート、末尾マトリックス、5基準予測を解除",
-    placeholder: "VIPアクティベーションコードを入力...",
+    placeholder: "INPUT ACTIVE CODE HERE",
     btnActive: "今すぐ有効化",
     btnActivating: "検証中...",
     activeBadge: "VIP有効化済み",
@@ -52,7 +52,7 @@ const translations = {
   es: {
     title: "ACTIVAR TODAS LAS FUNCIONES VIP",
     subtitle: "Desbloquea Vector Rueda, Distancia Bolsillo, Sectores, Matriz Final y Motor 5 Criterios",
-    placeholder: "Ingrese Código VIP (ej. ROULETTE-PRO-VUP88888)...",
+    placeholder: "INPUT ACTIVE CODE HERE",
     btnActive: "ACTIVAR AHORA",
     btnActivating: "Verificando...",
     activeBadge: "VIP ACTIVADO",
@@ -65,7 +65,7 @@ const translations = {
   ko: {
     title: "모든 VIP 기능 활성화 (ACTIVE ALL VIP FUNCTIONS)",
     subtitle: "휠 벡터, 포켓 거리, 섹터 히트, 끝수 행렬, 5기준 예측 엔진 잠금 해제",
-    placeholder: "VIP 활성화 코드 입력 (예: ROULETTE-PRO-VUP88888)...",
+    placeholder: "INPUT ACTIVE CODE HERE",
     btnActive: "지금 활성화",
     btnActivating: "검증 중...",
     activeBadge: "VIP 활성화됨",
@@ -78,7 +78,7 @@ const translations = {
   vi: {
     title: "KÍCH HOẠT TẤT CẢ TÍNH NĂNG VIP (ACTIVE ALL VIP FUNCTIONS)",
     subtitle: "Mở khóa Véctơ Vòng Quay, Khoảng Cách Ô, Phân Vùng, Ma Trận Số Cuối & Động Cơ Dự Đoán 5 Tiêu Chí",
-    placeholder: "Nhập mã kích hoạt VIP (VD: ROULETTE-PRO-D36JT18)...",
+    placeholder: "INPUT ACTIVE CODE HERE",
     btnActive: "KÍCH HOẠT NGAY",
     btnActivating: "Đang xác thực...",
     activeBadge: "ĐÃ MỞ KHÓA VIP",
