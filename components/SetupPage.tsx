@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Language, FiveCriteriaDepths } from '../types';
 import { VipActivationCard } from './VipActivationCard';
-import { checkDataConnection, useNetworkStatus } from '../utils/network';
+import { checkDataConnection } from '../utils/network';
 
 const BackIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,14 +57,14 @@ const labels = {
     spins: 'Spins',
     resetAll: 'Reset All to 10 Spins',
     defaultNotice: 'Default depth is 10 spins. Final Matrix uses full-session transitions (≥2 hits) and Sectors use destination transitions from the last spin. Top 3 Numbers synthesizes all criteria (Final Matrix, Pockets, Sectors, Colour, Series, Dozens/Cols, and Pattern Alerts) to predict the 3 highest chance numbers.',
-    reloadTitle: 'App Reload & Reset',
+    reloadTitle: 'Reload & Update Applications',
     currentVersion: 'Current Version: v2.5.0 Pro All-in-One',
-    reloadNotice: 'Reload or restart the application anytime. Choose to keep your current spin history and settings intact, or clear all data for a fresh restart.',
-    reloadBtn: 'Reload / Restart Application',
-    reloadModalTitle: 'Reload Application',
-    reloadModalMsg: 'Would you like to keep your current spin history and settings, or clear all session data before reloading?',
-    keepDataBtn: '✅ Keep Data & Reload',
-    clearDataBtn: '🗑️ Clear All Data & Reload',
+    reloadNotice: 'Reload and update the application anytime to get the latest features. Choose to keep your current spin history and settings intact, or clear all data for a fresh restart.',
+    reloadBtn: 'Reload and Update Applications',
+    reloadModalTitle: 'Reload and Update Applications',
+    reloadModalMsg: 'Would you like to keep your current spin history and settings, or clear all session data before updating and reloading?',
+    keepDataBtn: '✅ Keep Data, Reload & Update',
+    clearDataBtn: '🗑️ Clear All Data, Reload & Update',
     cancelBtn: 'Cancel',
     noConnectionTitle: 'Network Connection Required',
     noConnectionMsg: 'Please connect wifi or mobile data to update new functions',
@@ -109,14 +109,14 @@ const labels = {
     spins: '转',
     resetAll: '重置全为10转',
     defaultNotice: '默认深度为10转。尾数矩阵基于整场转移（≥2次命中），扇区基于上一转后的流向转移。前3推荐号码综合全维度数据（尾数矩阵、口袋距离、扇区、颜色、分区、打几十/打列及模式预警走势）深度分析并推荐最具胜率的3个号码。',
-    reloadTitle: '应用重新载入与重置',
+    reloadTitle: '重新载入与更新应用',
     currentVersion: '当前版本：v2.5.0 Pro All-in-One',
-    reloadNotice: '随时重新载入或重启应用。您可以选择保留当前所有历史旋转记录与设置，或清空数据全新重启。',
-    reloadBtn: '重新载入 / 重启应用',
-    reloadModalTitle: '重新载入应用',
-    reloadModalMsg: '您希望在重新载入时保留当前的旋转历史记录与设置，还是清空所有数据重新开始？',
-    keepDataBtn: '✅ 保留数据并重新载入',
-    clearDataBtn: '🗑️ 清空数据并重新载入',
+    reloadNotice: '随时重新载入并更新应用以获取最新功能。您可以选择保留当前所有历史旋转记录与设置，或清空数据全新重启。',
+    reloadBtn: '重新载入与更新应用',
+    reloadModalTitle: '重新载入与更新应用',
+    reloadModalMsg: '您希望在重新载入与更新时保留当前的旋转历史记录与设置，还是清空所有数据重新开始？',
+    keepDataBtn: '✅ 保留数据并更新',
+    clearDataBtn: '🗑️ 清空数据并更新',
     cancelBtn: '取消',
     noConnectionTitle: '需要数据网络连接',
     noConnectionMsg: '请连接 Wi-Fi 或移动数据以更新最新功能',
@@ -161,14 +161,14 @@ const labels = {
     spins: 'スピン',
     resetAll: '全基準を10スピンにリセット',
     defaultNotice: 'デフォルト深度は各10スピンです。尾数マトリクスは全履歴遷移（≥2回ヒット）、扇区は前回スピンからの推移に基づきます。トップ3数字は全基準データ（尾数マトリクス、ポケット、扇区、カラー、シリーズ、ダズン/カラム、パターンアラート）を統合分析し最高確率の3数字を予測します。',
-    reloadTitle: 'アプリの再読み込み・リセット',
+    reloadTitle: 'アプリの再読み込みと更新',
     currentVersion: '現在のバージョン: v2.5.0 Pro All-in-One',
-    reloadNotice: 'いつでもアプリを再読み込み・再起動できます。現在のスピン履歴と設定を保持するか、全データをリセットするか選択可能です。',
-    reloadBtn: 'アプリを再読み込み / 再起動',
-    reloadModalTitle: 'アプリの再読み込み確認',
-    reloadModalMsg: '現在のスピン履歴と設定を保持したまま再読み込みしますか？それとも全データを消去してリセットしますか？',
-    keepDataBtn: '✅ データを保持して再読み込み',
-    clearDataBtn: '🗑️ 全データを消去して再読み込み',
+    reloadNotice: '最新機能を取得するためにいつでもアプリを再読み込み・更新できます。現在の履歴と設定を保持するか、全データを消去して開始するかを選択できます。',
+    reloadBtn: '再読み込みとアプリケーションの更新',
+    reloadModalTitle: '再読み込みとアプリケーションの更新',
+    reloadModalMsg: '再読み込みと更新の際、現在のスピン履歴と設定を保持しますか？それとも全データを消去してリセットしますか？',
+    keepDataBtn: '✅ データを保持して更新',
+    clearDataBtn: '🗑️ 全データを消去して更新',
     cancelBtn: 'キャンセル',
     noConnectionTitle: 'データ接続が必要です',
     noConnectionMsg: '新しい機能を更新するには Wi-Fi またはモバイルデータに接続してください',
@@ -213,14 +213,14 @@ const labels = {
     spins: 'Giros',
     resetAll: 'Restablecer todos a 10',
     defaultNotice: 'La profundidad por defecto es de 10 giros. La Matriz Final usa transiciones de toda la sesión (≥2 aciertos) y los Sectores usan transiciones desde el último giro. El Top 3 combina todos los datos de criterios (Matriz, Bolsillos, Sectores, Color, Serie, Docenas/Cols y Alertas de Patrones) para predecir los 3 números con mayor probabilidad.',
-    reloadTitle: 'Recarga y Reinicio de la App',
+    reloadTitle: 'Recargar y Actualizar Aplicaciones',
     currentVersion: 'Versión Actual: v2.5.0 Pro All-in-One',
-    reloadNotice: 'Recargue o reinicie la aplicación en cualquier momento. Elija conservar su historial de giros o borrar todos los datos para reiniciar.',
-    reloadBtn: 'Recargar / Reiniciar Aplicación',
-    reloadModalTitle: 'Confirmación de Recarga',
-    reloadModalMsg: '¿Desea conservar su historial de giros y configuraciones actuales, o borrar todos los datos antes de recargar?',
-    keepDataBtn: '✅ Conservar Datos y Recargar',
-    clearDataBtn: '🗑️ Borrar Todo y Recargar',
+    reloadNotice: 'Recargue y actualice la aplicación en cualquier momento para obtener las funciones más recientes. Elija conservar su historial de giros o borrar todos los datos para reiniciar.',
+    reloadBtn: 'Recargar y Actualizar Aplicaciones',
+    reloadModalTitle: 'Recargar y Actualizar Aplicaciones',
+    reloadModalMsg: '¿Desea conservar su historial de giros y configuraciones actuales, o borrar todos los datos antes de recargar y actualizar?',
+    keepDataBtn: '✅ Conservar Datos y Actualizar',
+    clearDataBtn: '🗑️ Borrar Todo y Actualizar',
     cancelBtn: 'Cancelar',
     noConnectionTitle: 'Conexión de Datos Requerida',
     noConnectionMsg: 'Por favor conecte wifi o datos móviles para actualizar nuevas funciones',
@@ -265,14 +265,14 @@ const labels = {
     spins: '스핀',
     resetAll: '전체 10스핀으로 초기화',
     defaultNotice: '기본 탐색 깊이는 각 10스핀입니다. 끝수 매트릭스는 세션 전체 전이(≥2회 적중)를 사용하며, 섹터는 최근 스핀 후속 전이를 기반으로 합니다. 톱 3 번호는 모든 기준(끝수 매트릭스, 포켓, 섹터, 색상, 구역, 더즌/컬럼 및 패턴 알림)을 통합 분석하여 가장 승률 높은 3개 번호를 예측합니다.',
-    reloadTitle: '앱 새로고침 및 재시작',
+    reloadTitle: '새로고침 및 애플리케이션 업데이트',
     currentVersion: '현재 버전: v2.5.0 Pro All-in-One',
-    reloadNotice: '언제든지 앱을 새로고침하거나 재시작할 수 있습니다. 현재 스핀 기록을 유지할지, 모든 데이터를 지우고 재시작할지 선택할 수 있습니다.',
-    reloadBtn: '앱 새로고침 / 재시작',
-    reloadModalTitle: '앱 새로고침 확인',
-    reloadModalMsg: '현재 스핀 기록과 설정을 유지한 채 새로고침하시겠습니까, 아니면 모든 데이터를 지우고 재시작하시겠습니까?',
-    keepDataBtn: '✅ 데이터 유지 및 새로고침',
-    clearDataBtn: '🗑️ 모든 데이터 지우기 및 새로고침',
+    reloadNotice: '최신 기능을 적용하기 위해 언제든지 애플리케이션을 새로고침하고 업데이트할 수 있습니다. 현재 스핀 기록을 유지하거나 모든 데이터를 지우고 재시작할 수 있습니다.',
+    reloadBtn: '새로고침 및 애플리케이션 업데이트',
+    reloadModalTitle: '새로고침 및 애플리케이션 업데이트',
+    reloadModalMsg: '새로고침 및 업데이트 시 현재 스핀 기록과 설정을 유지하시겠습니까, 아니면 모든 데이터를 지우고 재시작하시겠습니까?',
+    keepDataBtn: '✅ 데이터 유지 및 업데이트',
+    clearDataBtn: '🗑️ 모든 데이터 지우기 및 업데이트',
     cancelBtn: '취소',
     noConnectionTitle: '데이터 연결 필요',
     noConnectionMsg: '새로운 기능을 업데이트하려면 Wi-Fi 또는 모바일 데이터에 연결해 주세요',
@@ -317,14 +317,14 @@ const labels = {
     spins: 'Vòng Quay',
     resetAll: 'Đặt Lại Tất Cả Thành 10 Vòng',
     defaultNotice: 'Độ sâu mặc định là 10 vòng quay. Ma Trận Số Cuối tự động dùng chuyển tiếp cả phiên (≥2 lần trúng) và Ô Bánh Xe dùng bước chuyển từ số trước. 3 Số Hàng Đầu kết hợp toàn bộ dữ liệu tiêu chí (Ma trận số cuối, Ô khoảng cách, Ô bánh xe, Màu sắc, Phân vùng, Hàng tá/Cột và Cảnh báo mẫu) để phân tích và dự đoán 3 số có cơ hội cao nhất.',
-    reloadTitle: 'Tải Lại & Đặt Lại Ứng Dụng',
+    reloadTitle: 'Tải Lại & Cập Nhật Ứng Dụng',
     currentVersion: 'Phiên Bản Hiện Tại: v2.5.0 Pro Tất-Cả-Trong-Một',
-    reloadNotice: 'Tải lại hoặc khởi động lại ứng dụng bất kỳ lúc nào. Chọn giữ nguyên lịch sử vòng quay và cài đặt hoặc xóa tất cả dữ liệu để làm mới.',
-    reloadBtn: 'Tải Lại / Khởi Động Lại Ứng Dụng',
-    reloadModalTitle: 'Tải Lại Ứng Dụng',
-    reloadModalMsg: 'Bạn muốn giữ lại lịch sử vòng quay và cài đặt hiện tại, hay xóa tất cả dữ liệu phiên trước khi tải lại?',
-    keepDataBtn: '✅ Giữ Dữ Liệu & Tải Lại',
-    clearDataBtn: '🗑️ Xóa Tất Cả Dữ Liệu & Tải Lại',
+    reloadNotice: 'Tải lại và cập nhật ứng dụng bất kỳ lúc nào để nhận các tính năng mới nhất. Chọn giữ nguyên lịch sử vòng quay và cài đặt hoặc xóa tất cả dữ liệu để làm mới.',
+    reloadBtn: 'Tải Lại & Cập Nhật Ứng Dụng',
+    reloadModalTitle: 'Tải Lại & Cập Nhật Ứng Dụng',
+    reloadModalMsg: 'Bạn muốn giữ lại lịch sử vòng quay và cài đặt hiện tại, hay xóa tất cả dữ liệu phiên trước khi tải lại và cập nhật?',
+    keepDataBtn: '✅ Giữ Dữ Liệu & Cập Nhật',
+    clearDataBtn: '🗑️ Xóa Tất Cả Dữ Liệu & Cập Nhật',
     cancelBtn: 'Hủy Bỏ',
     noConnectionTitle: 'Yêu Cầu Kết Nối Dữ Liệu',
     noConnectionMsg: 'Vui lòng kết nối wifi hoặc dữ liệu di động để cập nhật tính năng mới',
@@ -369,7 +369,6 @@ export const SetupPage: React.FC<SetupPageProps> = ({
 }) => {
   const t = labels[lang] || labels['en'];
   const depthOptions = [5, 8, 10, 12, 15];
-  const { isOnline } = useNetworkStatus();
   const [showReloadModal, setShowReloadModal] = useState<boolean>(false);
   const [isVerifyingNet, setIsVerifyingNet] = useState<boolean>(false);
   const [showNoConnectionModal, setShowNoConnectionModal] = useState<boolean>(false);
@@ -603,18 +602,6 @@ export const SetupPage: React.FC<SetupPageProps> = ({
             <p className="text-[11px] text-gray-300 font-medium leading-relaxed">
               {t.reloadNotice}
             </p>
-
-            {/* Network connection indicator */}
-            <div className="flex items-center justify-between text-[11px] px-3.5 py-2.5 rounded-xl bg-black/60 border border-gray-800">
-              <span className="text-gray-400 font-medium flex items-center gap-1.5">
-                <span>📶</span>
-                <span>{lang === 'zh' ? '数据连接状态' : lang === 'ja' ? 'データ接続状態' : 'Data Connection'}:</span>
-              </span>
-              <span className={`font-bold flex items-center gap-1.5 ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
-                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                {isOnline ? t.netStatusOnline : t.netStatusOffline}
-              </span>
-            </div>
 
             <div className="pt-1">
               <button
