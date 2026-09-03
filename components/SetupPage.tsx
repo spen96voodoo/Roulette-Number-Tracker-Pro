@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Language, FiveCriteriaDepths } from '../types';
 import { VipActivationCard } from './VipActivationCard';
+import { checkDataConnection, useNetworkStatus } from '../utils/network';
 
 const BackIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -65,6 +66,16 @@ const labels = {
     keepDataBtn: '✅ Keep Data & Reload',
     clearDataBtn: '🗑️ Clear All Data & Reload',
     cancelBtn: 'Cancel',
+    noConnectionTitle: 'Network Connection Required',
+    noConnectionMsg: 'Please connect wifi or mobile data to update new functions',
+    noConnectionSub: 'Your app is running normal with previous settings like a native app. You can continue normal using with all previous settings intact.',
+    keepNormalUsingBtn: 'Keep Normal Using',
+    retryConnectBtn: 'Retry Connection',
+    clearOfflineBtn: 'Clear Session Offline (Keep Normal Using)',
+    netStatusOnline: 'Online • Connected with data',
+    netStatusOffline: 'Offline Mode • Running with previous settings',
+    checkingConnection: 'Checking data connection...',
+    stillNoConnection: 'Still no data connection detected. Please connect wifi or mobile data, or keep normal using.',
     disclaimerTitle: 'DISCLAIMER',
     lastUpdated: 'Last Updated: Aug 2026',
     d1Title: '1. Purely Statistical & Analytical Tool',
@@ -107,6 +118,16 @@ const labels = {
     keepDataBtn: '✅ 保留数据并重新载入',
     clearDataBtn: '🗑️ 清空数据并重新载入',
     cancelBtn: '取消',
+    noConnectionTitle: '需要数据网络连接',
+    noConnectionMsg: '请连接 Wi-Fi 或移动数据以更新最新功能',
+    noConnectionSub: '应用当前处于离线模式，已自动加载您之前的设置与历史数据。即使没有网络连接，您也可以像原生应用一样正常使用所有功能。',
+    keepNormalUsingBtn: '保持正常使用',
+    retryConnectBtn: '重试连接',
+    clearOfflineBtn: '离线清空数据（继续正常使用）',
+    netStatusOnline: '在线 • 已连接网络数据',
+    netStatusOffline: '离线模式 • 使用之前设置正常运行',
+    checkingConnection: '正在检查网络连接...',
+    stillNoConnection: '暂未检测到数据网络连接。请连接 Wi-Fi 或移动数据，或保持正常使用。',
     disclaimerTitle: '免责声明',
     lastUpdated: '最后更新：2026年8月',
     d1Title: '1. 纯粹的统计与分析工具',
@@ -149,6 +170,16 @@ const labels = {
     keepDataBtn: '✅ データを保持して再読み込み',
     clearDataBtn: '🗑️ 全データを消去して再読み込み',
     cancelBtn: 'キャンセル',
+    noConnectionTitle: 'データ接続が必要です',
+    noConnectionMsg: '新しい機能を更新するには Wi-Fi またはモバイルデータに接続してください',
+    noConnectionSub: 'アプリは現在オフラインモードで実行されており、以前の設定と履歴が正常に読み込まれています。インターネット接続がなくてもネイティブアプリのように通常通り使用できます。',
+    keepNormalUsingBtn: '通常使用を続ける',
+    retryConnectBtn: '再接続を試す',
+    clearOfflineBtn: 'オフラインでデータを初期化（通常使用を継続）',
+    netStatusOnline: 'オンライン • データ接続中',
+    netStatusOffline: 'オフライン • 以前の設定で通常動作中',
+    checkingConnection: 'データ接続を確認中...',
+    stillNoConnection: 'データ接続が検出されませんでした。Wi-Fi またはモバイルデータに接続するか、通常使用を続けてください。',
     disclaimerTitle: '免責事項',
     lastUpdated: '最終更新：2026年8月',
     d1Title: '1. 純粋な統計・分析ツール',
@@ -191,6 +222,16 @@ const labels = {
     keepDataBtn: '✅ Conservar Datos y Recargar',
     clearDataBtn: '🗑️ Borrar Todo y Recargar',
     cancelBtn: 'Cancelar',
+    noConnectionTitle: 'Conexión de Datos Requerida',
+    noConnectionMsg: 'Por favor conecte wifi o datos móviles para actualizar nuevas funciones',
+    noConnectionSub: 'La aplicación se está ejecutando sin conexión con su configuración previa. Puede continuar utilizando todas las funciones con normalidad como una app nativa.',
+    keepNormalUsingBtn: 'Continuar Uso Normal',
+    retryConnectBtn: 'Reintentar Conexión',
+    clearOfflineBtn: 'Borrar Datos Sin Conexión (Uso Normal)',
+    netStatusOnline: 'En Línea • Conectado con datos',
+    netStatusOffline: 'Sin Conexión • Con configuración previa',
+    checkingConnection: 'Verificando conexión de datos...',
+    stillNoConnection: 'Aún no se detecta conexión. Por favor conecte wifi o datos móviles, o continúe el uso normal.',
     disclaimerTitle: 'DESCARGO DE RESPONSABILIDAD',
     lastUpdated: 'Última actualización: Ago 2026',
     d1Title: '1. Herramienta Puramente Estadística y Analítica',
@@ -233,6 +274,16 @@ const labels = {
     keepDataBtn: '✅ 데이터 유지 및 새로고침',
     clearDataBtn: '🗑️ 모든 데이터 지우기 및 새로고침',
     cancelBtn: '취소',
+    noConnectionTitle: '데이터 연결 필요',
+    noConnectionMsg: '새로운 기능을 업데이트하려면 Wi-Fi 또는 모바일 데이터에 연결해 주세요',
+    noConnectionSub: '앱이 현재 오프라인 모드로 실행 중이며 이전 설정과 기록이 정상적으로 유지됩니다. 인터넷 연결 없이도 네이티브 앱처럼 모든 기능을 정상적으로 계속 사용할 수 있습니다.',
+    keepNormalUsingBtn: '정상 사용 유지',
+    retryConnectBtn: '연결 재시도',
+    clearOfflineBtn: '오프라인에서 데이터 초기화 (정상 사용 계속)',
+    netStatusOnline: '온라인 • 데이터 연결됨',
+    netStatusOffline: '오프라인 • 이전 설정으로 정상 작동 중',
+    checkingConnection: '데이터 연결 확인 중...',
+    stillNoConnection: '데이터 연결이 감지되지 않았습니다. Wi-Fi 또는 모바일 데이터에 연결하거나 정상 사용을 유지해 주세요.',
     disclaimerTitle: '면책 조항',
     lastUpdated: '최종 업데이트: 2026년 8월',
     d1Title: '1. 순수 통계 및 분석 도구',
@@ -275,6 +326,16 @@ const labels = {
     keepDataBtn: '✅ Giữ Dữ Liệu & Tải Lại',
     clearDataBtn: '🗑️ Xóa Tất Cả Dữ Liệu & Tải Lại',
     cancelBtn: 'Hủy Bỏ',
+    noConnectionTitle: 'Yêu Cầu Kết Nối Dữ Liệu',
+    noConnectionMsg: 'Vui lòng kết nối wifi hoặc dữ liệu di động để cập nhật tính năng mới',
+    noConnectionSub: 'Ứng dụng hiện đang chạy ngoại tuyến với các cài đặt trước đó của bạn. Bạn có thể tiếp tục sử dụng tất cả các tính năng bình thường như một ứng dụng gốc mà không cần kết nối mạng.',
+    keepNormalUsingBtn: 'Tiếp Tục Sử Dụng Bình Thường',
+    retryConnectBtn: 'Thử Lại Kết Nối',
+    clearOfflineBtn: 'Xóa Dữ Liệu Ngoại Tuyến (Tiếp Tục Dùng)',
+    netStatusOnline: 'Trực Tuyến • Đã kết nối dữ liệu',
+    netStatusOffline: 'Ngoại Tuyến • Đang chạy với cài đặt trước',
+    checkingConnection: 'Đang kiểm tra kết nối dữ liệu...',
+    stillNoConnection: 'Chưa phát hiện kết nối dữ liệu. Vui lòng kết nối wifi hoặc dữ liệu di động, hoặc tiếp tục dùng bình thường.',
     disclaimerTitle: 'TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM',
     lastUpdated: 'Cập nhật lần cuối: Tháng 8, 2026',
     d1Title: '1. Công Cụ Thuần Thống Kê & Phân Tích',
@@ -308,7 +369,12 @@ export const SetupPage: React.FC<SetupPageProps> = ({
 }) => {
   const t = labels[lang] || labels['en'];
   const depthOptions = [5, 8, 10, 12, 15];
+  const { isOnline } = useNetworkStatus();
   const [showReloadModal, setShowReloadModal] = useState<boolean>(false);
+  const [isVerifyingNet, setIsVerifyingNet] = useState<boolean>(false);
+  const [showNoConnectionModal, setShowNoConnectionModal] = useState<boolean>(false);
+  const [pendingReloadMode, setPendingReloadMode] = useState<'keep' | 'clear'>('keep');
+  const [netRetryFeedback, setNetRetryFeedback] = useState<string | null>(null);
 
   const updateDepth = (key: keyof FiveCriteriaDepths, value: number) => {
     setFiveDepths((prev) => ({
@@ -330,11 +396,61 @@ export const SetupPage: React.FC<SetupPageProps> = ({
     });
   };
 
-  const handleReloadKeepData = () => {
+  const executeReloadWithData = (mode: 'keep' | 'clear') => {
+    if (mode === 'clear') {
+      if (onClearSession) {
+        onClearSession();
+      } else {
+        try {
+          localStorage.removeItem('roulette_tracker_session_v1');
+        } catch (e) {
+          // Ignore
+        }
+      }
+    }
+    // If service worker is active, notify SKIP_WAITING to refresh assets
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+    }
     window.location.reload();
   };
 
-  const handleReloadClearData = () => {
+  const handleRequestReload = async (mode: 'keep' | 'clear') => {
+    setIsVerifyingNet(true);
+    setNetRetryFeedback(null);
+    const hasData = await checkDataConnection(2200);
+    setIsVerifyingNet(false);
+
+    if (hasData) {
+      setShowReloadModal(false);
+      executeReloadWithData(mode);
+    } else {
+      setPendingReloadMode(mode);
+      setShowReloadModal(false);
+      setShowNoConnectionModal(true);
+    }
+  };
+
+  const handleRetryConnection = async () => {
+    setIsVerifyingNet(true);
+    setNetRetryFeedback(null);
+    const hasData = await checkDataConnection(2500);
+    setIsVerifyingNet(false);
+
+    if (hasData) {
+      setShowNoConnectionModal(false);
+      executeReloadWithData(pendingReloadMode);
+    } else {
+      setNetRetryFeedback(t.stillNoConnection);
+    }
+  };
+
+  const handleKeepNormalUsing = () => {
+    setShowNoConnectionModal(false);
+    setNetRetryFeedback(null);
+  };
+
+  const handleClearOfflineKeepUsing = () => {
     if (onClearSession) {
       onClearSession();
     } else {
@@ -344,7 +460,8 @@ export const SetupPage: React.FC<SetupPageProps> = ({
         // Ignore
       }
     }
-    window.location.reload();
+    setShowNoConnectionModal(false);
+    setNetRetryFeedback(null);
   };
 
   const depthFields: { key: keyof FiveCriteriaDepths; label: string }[] = [
@@ -487,6 +604,18 @@ export const SetupPage: React.FC<SetupPageProps> = ({
               {t.reloadNotice}
             </p>
 
+            {/* Network connection indicator */}
+            <div className="flex items-center justify-between text-[11px] px-3.5 py-2.5 rounded-xl bg-black/60 border border-gray-800">
+              <span className="text-gray-400 font-medium flex items-center gap-1.5">
+                <span>📶</span>
+                <span>{lang === 'zh' ? '数据连接状态' : lang === 'ja' ? 'データ接続状態' : 'Data Connection'}:</span>
+              </span>
+              <span className={`font-bold flex items-center gap-1.5 ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                {isOnline ? t.netStatusOnline : t.netStatusOffline}
+              </span>
+            </div>
+
             <div className="pt-1">
               <button
                 type="button"
@@ -576,27 +705,121 @@ export const SetupPage: React.FC<SetupPageProps> = ({
             <div className="space-y-2 pt-2">
               <button
                 type="button"
-                onClick={handleReloadKeepData}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 text-white font-extrabold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5"
+                disabled={isVerifyingNet}
+                onClick={() => handleRequestReload('keep')}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 text-white font-extrabold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 disabled:opacity-60"
               >
-                <span>{t.keepDataBtn}</span>
+                {isVerifyingNet ? (
+                  <span>⏳ {t.checkingConnection}</span>
+                ) : (
+                  <span>{t.keepDataBtn}</span>
+                )}
               </button>
 
               <button
                 type="button"
-                onClick={handleReloadClearData}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-700 via-roulette-red to-red-600 text-white font-extrabold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-md shadow-red-500/20 flex items-center justify-center gap-1.5"
+                disabled={isVerifyingNet}
+                onClick={() => handleRequestReload('clear')}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-700 via-roulette-red to-red-600 text-white font-extrabold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-md shadow-red-500/20 flex items-center justify-center gap-1.5 disabled:opacity-60"
               >
-                <span>{t.clearDataBtn}</span>
+                {isVerifyingNet ? (
+                  <span>⏳ {t.checkingConnection}</span>
+                ) : (
+                  <span>{t.clearDataBtn}</span>
+                )}
               </button>
 
               <button
                 type="button"
+                disabled={isVerifyingNet}
                 onClick={() => setShowReloadModal(false)}
                 className="w-full py-2 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-gray-400 font-bold text-xs uppercase tracking-wider active:scale-95 transition-all border border-gray-800"
               >
                 {t.cancelBtn}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leak of Data Connection / Offline Notification Modal */}
+      {showNoConnectionModal && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-zinc-950 border-2 border-amber-500/70 p-5 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl text-center relative overflow-hidden">
+            {/* Ambient gold glow */}
+            <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 flex items-center justify-center text-3xl text-amber-400 shadow-lg shadow-amber-500/20 animate-pulse">
+              📶
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-black text-gold uppercase tracking-wider">
+                {t.noConnectionTitle}
+              </h3>
+
+              {/* Exact user-requested notification */}
+              <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/50 text-amber-300 font-black text-xs leading-relaxed shadow-inner">
+                ⚠️ "{t.noConnectionMsg}"
+              </div>
+
+              <p className="text-[11px] text-gray-300 font-medium leading-relaxed px-1">
+                {t.noConnectionSub}
+              </p>
+
+              {netRetryFeedback && (
+                <div className="p-2 rounded-xl bg-red-950/70 border border-red-500/40 text-red-300 text-[11px] font-semibold animate-fade-in">
+                  {netRetryFeedback}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {/* Keep Normal Using */}
+              <button
+                type="button"
+                onClick={handleKeepNormalUsing}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-500 text-white font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2"
+              >
+                <span>🛡️</span>
+                <span>{t.keepNormalUsingBtn}</span>
+              </button>
+
+              {/* Retry Connection */}
+              <button
+                type="button"
+                disabled={isVerifyingNet}
+                onClick={handleRetryConnection}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-black font-extrabold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isVerifyingNet ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>{t.checkingConnection}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔄</span>
+                    <span>{t.retryConnectBtn}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Clear Offline Option if requested in clear mode */}
+              {pendingReloadMode === 'clear' && (
+                <button
+                  type="button"
+                  onClick={handleClearOfflineKeepUsing}
+                  className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-red-400 font-bold text-xs uppercase tracking-wider active:scale-95 transition-all border border-red-900/50 flex items-center justify-center gap-1.5"
+                >
+                  <span>🗑️</span>
+                  <span>{t.clearOfflineBtn}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

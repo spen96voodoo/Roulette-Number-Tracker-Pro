@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { registerServiceWorker } from './utils/network';
+
+// Register service worker for offline loading & native app experience
+registerServiceWorker();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

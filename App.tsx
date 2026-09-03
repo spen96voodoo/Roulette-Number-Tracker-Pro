@@ -19,6 +19,7 @@ import { PredictionDisplay } from './components/PredictionDisplay';
 import { MultiCriteriaPredictionCard } from './components/MultiCriteriaPredictionCard';
 import { NUMBER_COLORS, ROULETTE_NUMBERS, EUROPEAN_WHEEL_ORDER } from './constants';
 import { getIsVipActivated } from './lib/license';
+import { useNetworkStatus } from './utils/network';
 
 const MIN_SPINS_FOR_PATTERNS = 6;
 const MAX_FREE_SPINS = 50;
@@ -239,6 +240,7 @@ const App: React.FC = () => {
   }, []);
 
   const lastInputTime = useRef<number>(0);
+  const { isOnline } = useNetworkStatus();
   const [isStrategyEnabled, setIsStrategyEnabled] = useState<boolean>(() => initialSession?.strategyEnabled ?? true);
   const [unitMultiplier, setUnitMultiplier] = useState<number>(() => initialSession?.multiplier || 1);
   const [unitMultiplierInput, setUnitMultiplierInput] = useState<string>(() => (initialSession?.multiplier || 1).toString());
@@ -574,6 +576,15 @@ const App: React.FC = () => {
               <span>{t('title').split(' ')[0]} <span className="text-gold">{t('title').split(' ').slice(1).join(' ')}</span></span>
             </h1>
             <div className="flex items-center gap-2">
+              {!isOnline && (
+                <span
+                  className="text-[9px] font-black text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/40 shadow-sm flex items-center gap-1 animate-pulse"
+                  title="Offline Mode: Running normal with previous settings like a native app"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span>Offline</span>
+                </span>
+              )}
               {!isPro ? (
                 <button
                   type="button"
